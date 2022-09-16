@@ -1,3 +1,5 @@
 /.direnv/
 /.envrc
 /.venv/
+/lens_editor.egg-info/
+/lens_editor/__pycache__/
