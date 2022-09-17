@@ -82,13 +82,12 @@ class MainWindow(QMainWindow):
         self.defects += d_list
         self.processed_file += 1
         self.status_bar.showMessage(
-            f"loading files: {self.total_file}/{self.processed_file}"
+            f"Loading files: {self.total_file}/{self.processed_file}"
         )
-        # print(self.total_file, "/", self.processed_file)
         self.mutex.unlock()
 
         if self.processed_file == self.total_file:
-            self.defects = sorted(self.defects, key=lambda x: x.name)
+            self.defects = sorted(self.defects, key=lambda x: (x.name, x.width, x.height))
             self.view_update(self.defects)
             complete_candidates = list(set([d.name for d in self.defects]))
             completer = QCompleter(complete_candidates)
@@ -101,9 +100,10 @@ class MainWindow(QMainWindow):
         g_layout = QGraphicsGridLayout()
         g_widget = QGraphicsWidget()
         scene = QGraphicsScene()
+        col_size = 11
         for i, di in enumerate([DefectItem(d) for d in d_list]):
-            r = int(i / 6)
-            c = i % 6
+            r = int(i / col_size)
+            c = i % col_size
             g_layout.addItem(di, r, c)
         g_widget.setLayout(g_layout)
         scene.addItem(g_widget)

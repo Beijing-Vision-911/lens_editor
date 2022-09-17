@@ -5,12 +5,11 @@ from PySide6.QtWidgets import (
     QGraphicsLayoutItem,
     QGridLayout,
     QLabel,
-    QVBoxLayout,
     QWidget,
 )
 from PySide6.QtGui import QPixmap, QImage
 import cv2
-import numpy as np
+# import numpy as np
 from pathlib import Path
 
 
@@ -44,15 +43,14 @@ class Defect:
         self.ymin = int(obj.find("bndbox/ymin").text)
         self.xmax = int(obj.find("bndbox/xmax").text)
         self.ymax = int(obj.find("bndbox/ymax").text)
+        self.width = self.xmax - self.xmin
+        self.height = self.ymax - self.ymin
 
     def _crop(self, orig_img):
         self.image = orig_img[self.ymin : self.ymax, self.xmin : self.xmax].copy()
-        img_path = self.file_path.parents[1] / "img" / (self.file_path.stem + ".jpeg")
-        if not img_path.exists():
-            self.image = None
-            return
-        img = cv2.imread(str(img_path))
-        self.image = img[self.ymin : self.ymax, self.xmin : self.xmax].copy()
+        self.image_path = (
+            self.file_path.parents[1] / "img" / (self.file_path.stem + ".jpeg")
+        )
 
     def remove(self):
         self.changed = True
@@ -75,36 +73,77 @@ class DefectEdit(QWidget):
         self.setLayout(layout)
         label_name = QLabel("Name:")
         label_name_field = QLabel(self.defect.name)
-        label_f_path = QLabel("Path:")
+        label_f_path = QLabel("XML Path:")
         label_f_path_field = QLabel(str(self.defect.file_path))
+        label_i_path = QLabel("Image Path:")
+        label_i_path_field = QLabel(str(self.defect.image_path))
         label_coordinate = QLabel("Coordinate:")
         label_coordinate_field = QLabel(
             f"({self.defect.xmin}, {self.defect.ymin}) ({self.defect.xmax}, {self.defect.ymax})"
         )
-        label_defect = QLabel()
-        label_defect.setAlignment(Qt.AlignCenter)
-        label_defect.setPixmap(
-            numpy2pixmap(self.defect.image).scaledToWidth(200, Qt.SmoothTransformation)
-        )
+        label_width = QLabel("Width:")
+        label_width_field = QLabel(f"{self.defect.width}")
+        label_height = QLabel(f"Height:")
+        label_height_field = QLabel(f"{self.defect.height}")
+        label_map = QLabel()
+        label_map.setAlignment(Qt.AlignCenter)
+        label_map.setPixmap(self._minimap())
 
         layout.addWidget(label_name, 0, 0)
         layout.addWidget(label_name_field, 0, 1)
         layout.addWidget(label_f_path, 1, 0)
         layout.addWidget(label_f_path_field, 1, 1)
-        layout.addWidget(label_coordinate, 2, 0)
-        layout.addWidget(label_coordinate_field, 2, 1)
-        layout.addWidget(label_defect, 3, 0, 1, 2)
+        layout.addWidget(label_i_path, 2, 0)
+        layout.addWidget(label_i_path_field, 2, 1)
+        layout.addWidget(label_coordinate, 3, 0)
+        layout.addWidget(label_coordinate_field, 3, 1)
+        layout.addWidget(label_width, 4, 0)
+        layout.addWidget(label_width_field, 4, 1)
+        layout.addWidget(label_height, 5, 0)
+        layout.addWidget(label_height_field, 5, 1)
+        layout.addWidget(label_map, 6, 0, 1, 2)
 
-        # self. = QLabel()
-        # layout.addWidget(self.label)
-        # self.label.setText(self.defect.name)
+    def _minimap(self) -> QPixmap:
+        thick = 3
+        color = (0, 190, 246)
+        line_length = 50
+        np_origin = cv2.imread(str(self.defect.image_path))
+        x, x_t = self.defect.xmax, self.defect.xmax + line_length
+        y, y_t = self.defect.ymin, self.defect.ymin - 50
+        # cv2.line(np_origin, (x, y), (x_t, y_t), color, 3)
+        cv2.circle(np_origin, (x, y), 25, color, thick)
+
+        d_img = self.defect.image
+        d_w, d_h = d_img.shape[:2]
+        r_w = 100
+        r_h = int(r_w * d_w / d_h)
+        detail_img = cv2.resize(d_img, (r_w, r_h))
+        tooltip = cv2.copyMakeBorder(
+            detail_img,
+            thick,
+            thick,
+            thick,
+            thick,
+            cv2.BORDER_CONSTANT | cv2.BORDER_ISOLATED,
+            value=color,
+        )
+        np_origin[
+            y_t : y_t + tooltip.shape[0],
+            x_t : x_t + tooltip.shape[1],
+        ] = tooltip
+        # return numpy2pixmap(img).scaledToWidth(self.width(), Qt.SmoothTransformation)
+        return numpy2pixmap(np_origin).scaledToWidth(
+            self.width(), Qt.SmoothTransformation
+        )
 
 
 class DefectNodeItem(QGraphicsPixmapItem):
     def __init__(self, node: Defect):
         super().__init__()
         self.node: Defect = node
-        self.setPixmap(numpy2pixmap(node.image).scaledToWidth(60, Qt.SmoothTransformation))
+        self.setPixmap(
+            numpy2pixmap(node.image).scaledToWidth(60, Qt.SmoothTransformation)
+        )
 
     def mouseDoubleClickEvent(self, _) -> None:
         self.defect_edit = DefectEdit(self.node)
