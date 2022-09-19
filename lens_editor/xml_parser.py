@@ -6,21 +6,26 @@ from PySide6.QtWidgets import (
     QGridLayout,
     QLabel,
     QWidget,
+    QGraphicsItem,
 )
 from PySide6.QtGui import QPixmap, QImage
 import cv2
-# import numpy as np
 from pathlib import Path
+from itertools import groupby
+from typing import List
 
 
 class Defect:
-    def __init__(self, file_path: Path, root, obj, img):
+    def __init__(self, file_path: Path, tree, obj, img):
         self.file_path: Path = file_path
-        self._root = root
+        self.tree = tree
         self._obj = obj
         self._parse_obj(obj)
         self._crop(img)
-        self.changed = False
+        # modify state of xml file, set to true after changes have benn saved
+        self.modified = False
+        # mark state
+        self.mark = False
 
     def __repr__(self) -> str:
         return f"{self.name}: {self.xmin}, {self.ymin}, {self.xmax}, {self.ymax}"
@@ -35,8 +40,9 @@ class Defect:
 
     @name.setter
     def name(self, new_name):
-        self._obj.set("name", new_name)
-        self.changed = True
+        name = self._obj.find("name")
+        name.text = new_name
+        self.modified = True
 
     def _parse_obj(self, obj):
         self.xmin = int(obj.find("bndbox/xmin").text)
@@ -53,8 +59,11 @@ class Defect:
         )
 
     def remove(self):
-        self.changed = True
-        self._root.remove(self._obj)
+        self.modified = True
+        self.tree.getroot().remove(self._obj)
+
+    def mark_toggle(self):
+        self.mark = not self.mark
 
 
 def numpy2pixmap(np_img) -> QPixmap:
@@ -113,24 +122,24 @@ class DefectEdit(QWidget):
         # cv2.line(np_origin, (x, y), (x_t, y_t), color, 3)
         cv2.circle(np_origin, (x, y), 25, color, thick)
 
-        d_img = self.defect.image
-        d_w, d_h = d_img.shape[:2]
-        r_w = 100
-        r_h = int(r_w * d_w / d_h)
-        detail_img = cv2.resize(d_img, (r_w, r_h))
-        tooltip = cv2.copyMakeBorder(
-            detail_img,
-            thick,
-            thick,
-            thick,
-            thick,
-            cv2.BORDER_CONSTANT | cv2.BORDER_ISOLATED,
-            value=color,
-        )
-        np_origin[
-            y_t : y_t + tooltip.shape[0],
-            x_t : x_t + tooltip.shape[1],
-        ] = tooltip
+        # d_img = self.defect.image
+        # d_w, d_h = d_img.shape[:2]
+        # r_w = 100
+        # r_h = int(r_w * d_w / d_h)
+        # detail_img = cv2.resize(d_img, (r_w, r_h))
+        # tooltip = cv2.copyMakeBorder(
+        #     detail_img,
+        #     thick,
+        #     thick,
+        #     thick,
+        #     thick,
+        #     cv2.BORDER_CONSTANT | cv2.BORDER_ISOLATED,
+        #     value=color,
+        # )
+        # np_origin[
+        #     y_t : y_t + tooltip.shape[0],
+        #     x_t : x_t + tooltip.shape[1],
+        # ] = tooltip
         # return numpy2pixmap(img).scaledToWidth(self.width(), Qt.SmoothTransformation)
         return numpy2pixmap(np_origin).scaledToWidth(
             self.width(), Qt.SmoothTransformation
@@ -140,14 +149,21 @@ class DefectEdit(QWidget):
 class DefectNodeItem(QGraphicsPixmapItem):
     def __init__(self, node: Defect):
         super().__init__()
-        self.node: Defect = node
+        self.defect: Defect = node
         self.setPixmap(
             numpy2pixmap(node.image).scaledToWidth(60, Qt.SmoothTransformation)
         )
+        self.setFlag(QGraphicsItem.ItemIsSelectable)
 
     def mouseDoubleClickEvent(self, _) -> None:
-        self.defect_edit = DefectEdit(self.node)
+        self.defect_edit = DefectEdit(self.defect)
         self.defect_edit.show()
+
+    def mark_toggle(self):
+        self.defect.mark_toggle()
+
+    def rename(self, name):
+        self.defect.name = name
 
 
 class DefectItem(QGraphicsLayoutItem):
@@ -170,4 +186,18 @@ def defect_from_xml(f_name):
     if not img_path.exists():
         raise Exception(f"No corresponding image file for {f_name}")
     img = cv2.imread(str(img_path))
-    return [Defect(f_name, root, obj, img) for obj in root.iter("object")]
+    return [Defect(f_name, tree, obj, img) for obj in root.iter("object")]
+
+
+def defect_to_xml(d_list: List[Defect]) -> int:
+    modified_list = [d for d in d_list if d.modified]
+    for p, g in groupby(modified_list, key=lambda x: x.file_path):
+        g_list = list(g)
+        tree = g_list[0].tree
+        tree.write(str(p), encoding="utf-8", xml_declaration=True)
+        for d in g_list:
+            d.modified = False
+    return len(modified_list)
+            
+        
+    
