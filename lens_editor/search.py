@@ -1,5 +1,5 @@
 
-from .xml_parser import Defect
+from .defect import Defect
 from typing import List
 
 

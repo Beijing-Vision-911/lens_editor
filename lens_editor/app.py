@@ -27,7 +27,7 @@ from .search import FilterParser, QuickSearchSlot
 
 from .thread import Worker
 
-from .xml_parser import defect_from_xml, DefectItem, defect_to_xml
+from .defect import defect_from_xml, DefectItem, defect_to_xml
 
 from functools import partial
 
