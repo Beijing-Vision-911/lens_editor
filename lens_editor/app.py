@@ -42,7 +42,6 @@ class MainWindow(QMainWindow):
         self.main_view.setAlignment(Qt.AlignCenter)
         self.scene = QGraphicsScene()
         self.main_view.setScene(self.scene)
-        # self.main_view.setViewportUpdateMode(QGraphicsView.FullViewportUpdate)
         main_layout.addWidget(self.main_view)
 
         bottom_layout = QHBoxLayout()
@@ -56,19 +55,19 @@ class MainWindow(QMainWindow):
         )
         bottom_layout.addWidget(self.search_bar)
 
-        self.mark_btn = QPushButton("Mark")
+        self.mark_btn = QPushButton("Mark(a)")
         self.mark_btn.clicked.connect(self.mark_btn_clicked)
         bottom_layout.addWidget(self.mark_btn)
 
-        self.save_btn = QPushButton("Save")
+        self.save_btn = QPushButton("Save(s)")
         self.save_btn.clicked.connect(self.save_btn_clicked)
         bottom_layout.addWidget(self.save_btn)
 
-        self.rename_btn = QPushButton("Rename")
+        self.rename_btn = QPushButton("Rename(r)")
         self.rename_btn.clicked.connect(self.rename_btn_clicked)
         bottom_layout.addWidget(self.rename_btn)
 
-        self.open_file = QPushButton("Open")
+        self.open_file = QPushButton("Open(o)")
         self.open_file.clicked.connect(self.btn_openfile)
         bottom_layout.addWidget(self.open_file)
 
@@ -119,8 +118,16 @@ class MainWindow(QMainWindow):
         if not hasattr(self, "scene"):
             return
         items = self.scene.selectedItems()
-        for i in items:
-            i.mark_toggle()
+        mark_state = [i.mark_toggle() for i in items]
+        marked = len([x for x in mark_state if x])
+        unmarked = len([x for x in mark_state if not x])
+        message = ""
+        if marked > 0:
+            message += f"Marked {marked} items. "
+        if unmarked > 0:
+            message += f"Unmarked {unmarked} items."
+
+        self.status_bar.showMessage(message)
 
     def filter_apply(self, query, search_bar_update=False):
         d_list = self.filter_parser.parse(query, self.defects)

@@ -32,7 +32,7 @@ class FilterParser:
 class QuickSearchSlot:
     def __init__(self):
         self._default_slot = {
-            '1': '',
+            '1': '-mark',
             '2': 'mark',
             '3': 'mod',
         }

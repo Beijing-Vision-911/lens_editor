@@ -62,8 +62,10 @@ class Defect:
         self.modified = True
         self.tree.getroot().remove(self._obj)
 
-    def mark_toggle(self):
+    def mark_toggle(self) -> bool:
+        "return current mark state"
         self.mark = not self.mark
+        return self.mark
 
 
 def numpy2pixmap(np_img) -> QPixmap:
@@ -84,8 +86,10 @@ class DefectEdit(QWidget):
         label_name_field = QLabel(self.defect.name)
         label_f_path = QLabel("XML Path:")
         label_f_path_field = QLabel(str(self.defect.file_path))
+        label_f_path_field.setTextInteractionFlags(Qt.TextSelectableByMouse)
         label_i_path = QLabel("Image Path:")
         label_i_path_field = QLabel(str(self.defect.image_path))
+        label_i_path_field.setTextInteractionFlags(Qt.TextSelectableByMouse)
         label_coordinate = QLabel("Coordinate:")
         label_coordinate_field = QLabel(
             f"({self.defect.xmin}, {self.defect.ymin}) ({self.defect.xmax}, {self.defect.ymax})"
@@ -159,8 +163,8 @@ class DefectNodeItem(QGraphicsPixmapItem):
         self.defect_edit = DefectEdit(self.defect)
         self.defect_edit.show()
 
-    def mark_toggle(self):
-        self.defect.mark_toggle()
+    def mark_toggle(self) -> bool:
+        return self.defect.mark_toggle()
 
     def rename(self, name):
         self.defect.name = name
