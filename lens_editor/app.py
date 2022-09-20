@@ -142,12 +142,15 @@ class MainWindow(QMainWindow):
         self.defects = []
         file_path = Path(QFileDialog.getExistingDirectory())
         xml_files = [x for x in file_path.rglob("*.xml")]
+        img_files = [i for i in file_path.rglob("*.jpeg")]
+        good_xml_files = [ x for x in xml_files if x.stem in [s.stem for s in img_files]]
+
         self.total_file = len(xml_files)
-        self.processed_file = 0
+        self.processed_file = 0 
         for f in xml_files:
             w = Worker(defect_from_xml, f)
             w.signals.result.connect(self.worker_done)
-            self.thread_pool.start(w)
+            self.thread_pool.start(w)           
 
     def worker_done(self, d_list):
         self.mutex.lock()
