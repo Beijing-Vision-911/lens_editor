@@ -45,12 +45,12 @@ class Defect:
         self.modified = True
 
     def _parse_obj(self, obj):
-        self.xmin = int(obj.find("bndbox/xmin").text)
-        self.ymin = int(obj.find("bndbox/ymin").text)
+        self.xmin = self.x = int(obj.find("bndbox/xmin").text)
+        self.ymin = self.y = int(obj.find("bndbox/ymin").text)
         self.xmax = int(obj.find("bndbox/xmax").text)
         self.ymax = int(obj.find("bndbox/ymax").text)
-        self.width = self.xmax - self.xmin
-        self.height = self.ymax - self.ymin
+        self.width = self.w = self.xmax - self.xmin
+        self.height = self.h = self.ymax - self.ymin
 
     def _crop(self, orig_img):
         self.image = orig_img[self.ymin : self.ymax, self.xmin : self.xmax].copy()
@@ -202,6 +202,3 @@ def defect_to_xml(d_list: List[Defect]) -> int:
         for d in g_list:
             d.modified = False
     return len(modified_list)
-            
-        
-    

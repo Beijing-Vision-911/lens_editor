@@ -25,8 +25,14 @@ class FilterParser:
             return list(filter(lambda d: d.modified, d_list))
         if filter_cmd.startswith('-mod'):
             return list(filter(lambda d: not d.modified, d_list))
+        if filter_cmd.startswith("name="):
+            names = filter_cmd[5:].split('+')
+            return list(filter(lambda d: d.name in names, d_list))
+        if (f := filter_cmd[0]) in "xyhw" and filter_cmd[1] in "=<>":
+            f_func = eval(f'lambda d: d.{f} {filter_cmd[1]} {filter_cmd[2:]}')
+            return list(filter(f_func, d_list))
 
-        return list(filter(lambda d: d.name.startswith(filter_cmd), d_list))
+        return d_list
 
 
 class QuickSearchSlot:
