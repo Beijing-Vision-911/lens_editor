@@ -28,7 +28,7 @@ class Defect:
         self.mark = False
 
     def __repr__(self) -> str:
-        return f"{self.name}: {self.xmin}, {self.ymin}, {self.xmax}, {self.ymax}"
+        return f"Defect[{self.name}: {self.xmin}, {self.ymin}, {self.xmax}, {self.ymax}]"
 
     @property
     def name(self):
@@ -58,7 +58,7 @@ class Defect:
             self.file_path.parents[1] / "img" / (self.file_path.stem + ".jpeg")
         )
 
-    def remove(self):
+    def remove(self)-> None:
         self.modified = True
         self.tree.getroot().remove(self._obj)
 

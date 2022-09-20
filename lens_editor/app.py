@@ -1,3 +1,4 @@
+from mimetypes import init
 from pathlib import Path
 import sys
 from PySide6.QtCore import QMutex, QThreadPool, Qt
@@ -33,41 +34,41 @@ from functools import partial
 
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self) -> None: 
         super().__init__()
-        widget = QWidget()
-        main_layout = QVBoxLayout()
-        self.main_view = QGraphicsView()
+        widget : QWidget = QWidget()
+        main_layout : QVBoxLayout = QVBoxLayout()
+        self.main_view : QGraphicsView= QGraphicsView()
         self.main_view.setDragMode(QGraphicsView.RubberBandDrag)
         self.main_view.setAlignment(Qt.AlignCenter)
-        self.scene = QGraphicsScene()
+        self.scene : QGraphicsScene = QGraphicsScene()
         self.main_view.setScene(self.scene)
         main_layout.addWidget(self.main_view)
 
-        bottom_layout = QHBoxLayout()
+        bottom_layout : QHBoxLayout = QHBoxLayout()
         main_layout.addLayout(bottom_layout)
-        self.status_bar = QStatusBar()
+        self.status_bar : QStatusBar = QStatusBar()
         self.setStatusBar(self.status_bar)
 
-        self.search_bar = QLineEdit()
+        self.search_bar : QLineEdit= QLineEdit()
         self.search_bar.returnPressed.connect(
             lambda: self.filter_apply(self.search_bar.text())
         )
         bottom_layout.addWidget(self.search_bar)
 
-        self.mark_btn = QPushButton("Mark(a)")
+        self.mark_btn : QPushButton = QPushButton("Mark(a)")
         self.mark_btn.clicked.connect(self.mark_btn_clicked)
         bottom_layout.addWidget(self.mark_btn)
 
-        self.save_btn = QPushButton("Save(s)")
+        self.save_btn : QPushButton = QPushButton("Save(s)")
         self.save_btn.clicked.connect(self.save_btn_clicked)
         bottom_layout.addWidget(self.save_btn)
 
-        self.rename_btn = QPushButton("Rename(r)")
+        self.rename_btn : QPushButton = QPushButton("Rename(r)")
         self.rename_btn.clicked.connect(self.rename_btn_clicked)
         bottom_layout.addWidget(self.rename_btn)
 
-        self.open_file = QPushButton("Open(o)")
+        self.open_file : QPushButton = QPushButton("Open(o)")
         self.open_file.clicked.connect(self.btn_openfile)
         bottom_layout.addWidget(self.open_file)
 
@@ -76,13 +77,13 @@ class MainWindow(QMainWindow):
         self.setGeometry(0, 0, 800, 600)
         self.setCentralWidget(widget)
 
-        self.thread_pool = QThreadPool()
-        self.mutex = QMutex()
-        self.filter_parser = FilterParser()
+        self.thread_pool : QThreadPool = QThreadPool()
+        self.mutex : QMutex = QMutex()
+        self.filter_parser : FilterParser = FilterParser()
 
         self.shortcuts()
 
-    def shortcuts(self):
+    def shortcuts(self) -> None:
         QShortcut(QKeySequence("o"), self, self.btn_openfile)
         QShortcut(QKeySequence("s"), self, self.save_btn_clicked)
         QShortcut(QKeySequence("a"), self, self.mark_btn_clicked)
@@ -96,7 +97,7 @@ class MainWindow(QMainWindow):
             QShortcut(i, self, partial(slot_apply, i))
             QShortcut(QKeySequence(f"Ctrl+{i}"), self, partial(slot_set, i))
 
-    def rename_btn_clicked(self):
+    def rename_btn_clicked(self) -> None:
         if not hasattr(self, "scene"):
             return
         items = self.scene.selectedItems()
@@ -110,11 +111,11 @@ class MainWindow(QMainWindow):
         for i in items:
             i.rename(new_label)
 
-    def save_btn_clicked(self):
+    def save_btn_clicked(self) -> None:
         mod_files_num = defect_to_xml(self.defects)
         self.status_bar.showMessage(f"Saved {mod_files_num} changes")
 
-    def mark_btn_clicked(self):
+    def mark_btn_clicked(self) -> None:
         if not hasattr(self, "scene"):
             return
         items = self.scene.selectedItems()
@@ -129,7 +130,7 @@ class MainWindow(QMainWindow):
 
         self.status_bar.showMessage(message)
 
-    def filter_apply(self, query, search_bar_update=False):
+    def filter_apply(self, query, search_bar_update=False)-> None:
         d_list = self.filter_parser.parse(query, self.defects)
         self.view_update(d_list)
         self.status_bar.showMessage(
@@ -138,7 +139,7 @@ class MainWindow(QMainWindow):
         if search_bar_update:
             self.search_bar.setText(query)
 
-    def btn_openfile(self):
+    def btn_openfile(self) -> None:
         self.defects = []
         file_path = Path(QFileDialog.getExistingDirectory())
         xml_files = [x for x in file_path.rglob("*.xml")]
@@ -149,7 +150,7 @@ class MainWindow(QMainWindow):
             w.signals.result.connect(self.worker_done)
             self.thread_pool.start(w)
 
-    def worker_done(self, d_list):
+    def worker_done(self, d_list)-> None:
         self.mutex.lock()
         self.defects += d_list
         self.processed_file += 1
@@ -170,17 +171,21 @@ class MainWindow(QMainWindow):
                 f"No Filter, Category: {len(complete_candidates)},Total: {len(self.defects)}"
             )
 
-    def view_update(self, d_list):
-        g_layout = QGraphicsGridLayout()
+    def view_update(self, d_list) -> None:
+        g_layout : QGraphicsGridLayout = QGraphicsGridLayout()
         g_layout.setContentsMargins(10, 10, 10, 10)
-        g_widget = QGraphicsWidget()
+        g_widget : QGraphicsWidget = QGraphicsWidget()
         self.scene.clear()
         # dynamic column size, dependents on window width
         col_size = int(self.frameGeometry().width() / 80)
+        from itertools import groupby
+        s = [list(g) for k,g in groupby(d_list,key=lambda d:d.name)]
         for i, di in enumerate([DefectItem(d) for d in d_list]):
+            
             r = int(i / col_size)
             c = i % col_size
             g_layout.addItem(di, r, c)
+            
         g_widget.setLayout(g_layout)
         self.scene.addItem(g_widget)
         self.main_view.centerOn(self.scene.itemsBoundingRect().center())
