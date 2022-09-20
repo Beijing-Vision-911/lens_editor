@@ -1,8 +1,10 @@
 import xml.etree.ElementTree as ET
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QGraphicsItemGroup,
     QGraphicsPixmapItem,
     QGraphicsLayoutItem,
+    QGraphicsTextItem,
     QGridLayout,
     QLabel,
     QWidget,
@@ -150,14 +152,34 @@ class DefectEdit(QWidget):
         )
 
 
-class DefectNodeItem(QGraphicsPixmapItem):
-    def __init__(self, node: Defect):
-        super().__init__()
-        self.defect: Defect = node
-        self.setPixmap(
-            numpy2pixmap(node.image).scaledToWidth(60, Qt.SmoothTransformation)
+class DefectLayoutItem(QGraphicsLayoutItem):
+    def __init__(self, group, parent=None) -> None:
+        super().__init__(parent)
+        self.group = group
+        self.setGraphicsItem(self.group)
+
+    def sizeHint(self, which, const):
+        return self.group.boundingRect().size()
+
+    def setGeometry(self, rect):
+        return self.group.setPos(rect.topLeft())        
+
+
+class DefectItem(QGraphicsItemGroup):
+    def __init__(self, defect, parent=None) -> None:
+        super().__init__(parent)
+        self.defect = defect
+        self.label = QGraphicsTextItem(defect.name)
+        self.img = QGraphicsPixmapItem()
+        self.img.setPixmap(
+            numpy2pixmap(defect.image).scaledToWidth(50, Qt.SmoothTransformation)
         )
-        self.setFlag(QGraphicsItem.ItemIsSelectable)
+        self.addToGroup(self.label)
+        self.label.setY(-20)
+        self.addToGroup(self.img)
+
+    def get_layout_item(self) -> DefectLayoutItem:
+        return DefectLayoutItem(self)
 
     def mouseDoubleClickEvent(self, _) -> None:
         self.defect_edit = DefectEdit(self.defect)
@@ -168,19 +190,6 @@ class DefectNodeItem(QGraphicsPixmapItem):
 
     def rename(self, name):
         self.defect.name = name
-
-
-class DefectItem(QGraphicsLayoutItem):
-    def __init__(self, node, parent=None, isLayout=False):
-        super().__init__(parent, isLayout)
-        self.node_item = DefectNodeItem(node)
-        self.setGraphicsItem(self.node_item)
-
-    def sizeHint(self, which, const):
-        return self.node_item.boundingRect().size()
-
-    def setGeometry(self, rect):
-        return self.node_item.setPos(rect.topLeft())
 
 
 def defect_from_xml(f_name):

@@ -173,11 +173,12 @@ class MainWindow(QMainWindow):
     def view_update(self, d_list):
         g_layout = QGraphicsGridLayout()
         g_layout.setContentsMargins(10, 10, 10, 10)
+        g_layout.setSpacing(25)
         g_widget = QGraphicsWidget()
         self.scene.clear()
         # dynamic column size, dependents on window width
         col_size = int(self.frameGeometry().width() / 80)
-        for i, di in enumerate([DefectItem(d) for d in d_list]):
+        for i, di in enumerate([DefectItem(d).get_layout_item() for d in d_list]):
             r = int(i / col_size)
             c = i % col_size
             g_layout.addItem(di, r, c)
