@@ -21,7 +21,9 @@ from PySide6.QtWidgets import (
     QInputDialog,
 )
 
-from PySide6.QtGui import QShortcut, QKeySequence
+from PySide6.QtGui import QPixmapCache, QShortcut, QKeySequence
+
+from .view import View
 
 from .search import FilterParser, QuickSearchSlot
 
@@ -31,17 +33,19 @@ from .defect import defect_from_xml, DefectItem, defect_to_xml
 
 from functools import partial
 
+from typing import List
+
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, initial_path=""):
         super().__init__()
         widget = QWidget()
         main_layout = QVBoxLayout()
-        self.main_view = QGraphicsView()
-        self.main_view.setDragMode(QGraphicsView.RubberBandDrag)
-        self.main_view.setAlignment(Qt.AlignCenter)
         self.scene = QGraphicsScene()
-        self.main_view.setScene(self.scene)
+        self.main_view = View(self.scene)
+        QPixmapCache.setCacheLimit(1024 * 1024 * 10)
+
+        self.scene.setItemIndexMethod(QGraphicsScene.NoIndex)
         main_layout.addWidget(self.main_view)
 
         bottom_layout = QHBoxLayout()
@@ -81,6 +85,9 @@ class MainWindow(QMainWindow):
         self.filter_parser = FilterParser()
 
         self.shortcuts()
+
+        if initial_path:
+            self._load_files(initial_path)
 
     def shortcuts(self):
         QShortcut(QKeySequence("o"), self, self.btn_openfile)
@@ -138,16 +145,32 @@ class MainWindow(QMainWindow):
         if search_bar_update:
             self.search_bar.setText(query)
 
-    def btn_openfile(self):
+    def _load_files(self, path: str) -> None:
+        xml_files = [x for x in Path(path).glob("**/*.xml") if x.is_file()]
+
+        def find_jpeg(xml_file):
+            if (jpeg_file := xml_file.with_suffix(".jpeg")).is_file():
+                return jpeg_file
+            if (
+                jpeg_file := xml_file.parents[1] / "img" / f"{xml_file.stem}.jpeg"
+            ).is_file():
+                return jpeg_file
+            print(f"Cannot find jpeg for {xml_file}")
+            return None
+
+        parms = [(x, find_jpeg(x)) for x in xml_files if find_jpeg(x)]
+
         self.defects = []
-        file_path = Path(QFileDialog.getExistingDirectory())
-        xml_files = [x for x in file_path.rglob("*.xml")]
-        self.total_file = len(xml_files)
+        self.total_file = len(parms)
         self.processed_file = 0
-        for f in xml_files:
-            w = Worker(defect_from_xml, f)
+        for f, j in parms:
+            w = Worker(defect_from_xml, f, j)
             w.signals.result.connect(self.worker_done)
             self.thread_pool.start(w)
+
+    def btn_openfile(self):
+        file_path = QFileDialog.getExistingDirectory()
+        self._load_files(file_path)
 
     def worker_done(self, d_list):
         self.mutex.lock()
@@ -189,6 +212,7 @@ class MainWindow(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
-    window = MainWindow()
+    initial_path = sys.argv[1] if len(sys.argv) > 1 else ""
+    window = MainWindow(initial_path)
     window.show()
     app.exec()

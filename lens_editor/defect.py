@@ -9,17 +9,27 @@ from PySide6.QtWidgets import (
     QLabel,
     QWidget,
     QGraphicsItem,
+    QGraphicsSimpleTextItem,
 )
-from PySide6.QtGui import QPixmap, QImage
+from PySide6.QtGui import QPixmap, QImage, QBrush, QPen, QColor
 import cv2
+import numpy as np
 from pathlib import Path
 from itertools import groupby
 from typing import List
 
 
 class Defect:
-    def __init__(self, file_path: Path, tree, obj, img):
+    def __init__(
+        self,
+        file_path: Path,
+        img_path: Path,
+        tree: ET.ElementTree,
+        obj: ET.Element,
+        img: np.ndarray,
+    ):
         self.file_path: Path = file_path
+        self.image_path: Path = img_path
         self.tree = tree
         self._obj = obj
         self._parse_obj(obj)
@@ -38,15 +48,17 @@ class Defect:
 
     @name.getter
     def name(self):
-        return self._obj.find("name").text
+        return self._name
 
     @name.setter
     def name(self, new_name):
         name = self._obj.find("name")
         name.text = new_name
         self.modified = True
+        self._name = new_name
 
     def _parse_obj(self, obj):
+        self._name = obj.find("name").text
         self.xmin = self.x = int(obj.find("bndbox/xmin").text)
         self.ymin = self.y = int(obj.find("bndbox/ymin").text)
         self.xmax = int(obj.find("bndbox/xmax").text)
@@ -56,9 +68,6 @@ class Defect:
 
     def _crop(self, orig_img):
         self.image = orig_img[self.ymin : self.ymax, self.xmin : self.xmax].copy()
-        self.image_path = (
-            self.file_path.parents[1] / "img" / (self.file_path.stem + ".jpeg")
-        )
 
     def remove(self):
         self.modified = True
@@ -162,21 +171,32 @@ class DefectLayoutItem(QGraphicsLayoutItem):
         return self.group.boundingRect().size()
 
     def setGeometry(self, rect):
-        return self.group.setPos(rect.topLeft())        
+        return self.group.setPos(rect.topLeft())
 
 
 class DefectItem(QGraphicsItemGroup):
-    def __init__(self, defect, parent=None) -> None:
+    def __init__(self, defect: Defect, parent=None) -> None:
         super().__init__(parent)
-        self.defect = defect
-        self.label = QGraphicsTextItem(defect.name)
+        self.setCacheMode(QGraphicsItem.DeviceCoordinateCache)
+        self.setFlag(QGraphicsItem.ItemIsSelectable)
+        self.defect: Defect = defect
+        self.label = QGraphicsSimpleTextItem(defect.name)
         self.img = QGraphicsPixmapItem()
         self.img.setPixmap(
             numpy2pixmap(defect.image).scaledToWidth(50, Qt.SmoothTransformation)
         )
         self.addToGroup(self.label)
-        self.label.setY(-20)
+        self.label.setY(-13)
+        self.label.setX(12)
         self.addToGroup(self.img)
+        self._rect = self.childrenBoundingRect()
+        self._label_color = QColor("black")
+
+    def paint(self, painter, option, widget=None):
+        painter.drawRect(self._rect)
+
+    def boundingRect(self):
+        return self._rect
 
     def get_layout_item(self) -> DefectLayoutItem:
         return DefectLayoutItem(self)
@@ -186,20 +206,30 @@ class DefectItem(QGraphicsItemGroup):
         self.defect_edit.show()
 
     def mark_toggle(self) -> bool:
-        return self.defect.mark_toggle()
+        if state := self.defect.mark_toggle():
+            self.label.setBrush(QBrush(QColor("green")))
+        else:
+            self.label.setBrush(self._label_color)
+        return state
 
     def rename(self, name):
         self.defect.name = name
+        self.label.setText(name)
+
+    def itemChange(self, change, value):
+        if change == QGraphicsItem.ItemSelectedChange:
+            if value:
+                self.label.setBrush(QBrush(QColor("red")))
+            else:
+                self.label.setBrush(QBrush(QColor("black")))
+        return super().itemChange(change, value)
 
 
-def defect_from_xml(f_name):
-    tree = ET.parse(f_name)
+def defect_from_xml(xml_path: Path, img_path: Path) -> List[Defect]:
+    tree = ET.parse(str(xml_path))
     root = tree.getroot()
-    img_path = f_name.parents[1] / "img" / (f_name.stem + ".jpeg")
-    if not img_path.exists():
-        raise Exception(f"No corresponding image file for {f_name}")
     img = cv2.imread(str(img_path))
-    return [Defect(f_name, tree, obj, img) for obj in root.iter("object")]
+    return [Defect(xml_path, img_path, tree, obj, img) for obj in root.iter("object")]
 
 
 def defect_to_xml(d_list: List[Defect]) -> int:
