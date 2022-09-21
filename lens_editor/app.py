@@ -34,6 +34,7 @@ from .defect import defect_from_xml, DefectItem, defect_to_xml
 from functools import partial
 
 from typing import List
+from itertools import groupby
 
 
 class MainWindow(QMainWindow):
@@ -201,7 +202,11 @@ class MainWindow(QMainWindow):
         self.scene.clear()
         # dynamic column size, dependents on window width
         col_size = int(self.frameGeometry().width() / 80)
-        for i, di in enumerate([DefectItem(d).get_layout_item() for d in d_list]):
+        s = [list(g) for k,g in groupby(d_list,key=lambda d:d.name)]
+        # for j in range(len(s)):
+            
+        for i, di in enumerate([DefectItem(d) for d in s[0]]):
+            
             r = int(i / col_size)
             c = i % col_size
             g_layout.addItem(di, r, c)
