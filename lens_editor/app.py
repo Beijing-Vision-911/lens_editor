@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QGraphicsScene,
     QGraphicsWidget,
     QInputDialog,
+    
 )
 
 from PySide6.QtGui import QShortcut, QKeySequence
@@ -173,14 +174,16 @@ class MainWindow(QMainWindow):
 
     def view_update(self, d_list) -> None:
         g_layout : QGraphicsGridLayout = QGraphicsGridLayout()
-        g_layout.setContentsMargins(10, 10, 10, 10)
+        g_layout.setContentsMargins(10, 10, 10, 10)        
         g_widget : QGraphicsWidget = QGraphicsWidget()
         self.scene.clear()
         # dynamic column size, dependents on window width
         col_size = int(self.frameGeometry().width() / 80)
         from itertools import groupby
         s = [list(g) for k,g in groupby(d_list,key=lambda d:d.name)]
-        for i, di in enumerate([DefectItem(d) for d in d_list]):
+        # for j in range(len(s)):
+            
+        for i, di in enumerate([DefectItem(d) for d in s[0]]):
             
             r = int(i / col_size)
             c = i % col_size
