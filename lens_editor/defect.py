@@ -133,32 +133,54 @@ class DefectEdit(QWidget):
         line_length = 50
         np_origin = cv2.imread(str(self.defect.image_path))
         x, x_t = self.defect.xmax, self.defect.xmax + line_length
-        y, y_t = self.defect.ymin, self.defect.ymin - 50
-        # cv2.line(np_origin, (x, y), (x_t, y_t), color, 3)
+        y, y_t = self.defect.ymin, self.defect.ymin  - 50
+        cv2.line(np_origin, (x, y), (x_t, y_t), color, 3)
         cv2.circle(np_origin, (x, y), 25, color, thick)
 
-        # d_img = self.defect.image
-        # d_w, d_h = d_img.shape[:2]
-        # r_w = 100
-        # r_h = int(r_w * d_w / d_h)
-        # detail_img = cv2.resize(d_img, (r_w, r_h))
-        # tooltip = cv2.copyMakeBorder(
-        #     detail_img,
-        #     thick,
-        #     thick,
-        #     thick,
-        #     thick,
-        #     cv2.BORDER_CONSTANT | cv2.BORDER_ISOLATED,
-        #     value=color,
-        # )
-        # np_origin[
-        #     y_t : y_t + tooltip.shape[0],
-        #     x_t : x_t + tooltip.shape[1],
-        # ] = tooltip
-        # return numpy2pixmap(img).scaledToWidth(self.width(), Qt.SmoothTransformation)
+        d_img = self.defect.image
+        d_w, d_h = d_img.shape[:2]
+        r_w = 100
+        r_h = int(r_w * d_w / d_h)
+        detail_img = cv2.resize(d_img, (r_w, r_h))
+        tooltip = cv2.copyMakeBorder(
+            detail_img,
+            thick,
+            thick,
+            thick,
+            thick,
+            cv2.BORDER_CONSTANT | cv2.BORDER_ISOLATED,
+            value=color,
+        )
+
+        if x_t + tooltip.shape[1] >2400:
+            print("缩放图超出边界")
+            if  y_t + tooltip.shape[0] > 1220:
+                breakpoint()
+                np_origin[
+                y_t : y_t + tooltip.shape[0]-1220,
+                x_t : x_t + tooltip.shape[1]-1100,
+            ] = tooltip
+            else:
+                np_origin[
+                y_t : y_t + tooltip.shape[0]+1220,
+                x_t : x_t + tooltip.shape[1]-1100,
+            ] = tooltip
+
+            #代码未运行成功，暂未找到解决办法。
+            
+        else:
+            np_origin[
+                y_t : y_t + tooltip.shape[0],
+                x_t : x_t + tooltip.shape[1],
+            ] = tooltip
+           
+
+        return numpy2pixmap(np_origin).scaledToWidth(self.width(), Qt.SmoothTransformation)
+        
         return numpy2pixmap(np_origin).scaledToWidth(
             self.width(), Qt.SmoothTransformation
         )
+    
 
 
 class DefectLayoutItem(QGraphicsLayoutItem):
