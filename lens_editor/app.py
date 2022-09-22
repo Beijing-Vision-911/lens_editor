@@ -205,6 +205,7 @@ class MainWindow(QMainWindow):
             r = int(i / col_size)
             c = i % col_size
             g_layout.addItem(di, r, c)
+        
         g_widget.setLayout(g_layout)
         self.scene.addItem(g_widget)
         self.main_view.centerOn(self.scene.itemsBoundingRect().center())

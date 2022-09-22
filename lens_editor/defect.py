@@ -1,3 +1,4 @@
+from xml.etree.ElementPath import xpath_tokenizer
 import xml.etree.ElementTree as ET
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -132,9 +133,9 @@ class DefectEdit(QWidget):
         color = (0, 190, 246)
         line_length = 50
         np_origin = cv2.imread(str(self.defect.image_path))
-        x, x_t = self.defect.xmax, self.defect.xmax + line_length
-        y, y_t = self.defect.ymin, self.defect.ymin  - 50
-        cv2.line(np_origin, (x, y), (x_t, y_t), color, 3)
+        x, x_t = self.defect.xmax, self.defect.xmax + line_length 
+        y, y_t = self.defect.ymin, self.defect.ymin  - 50 
+        # cv2.line(np_origin, (x, y), (x_t, y_t), color, 3)
         cv2.circle(np_origin, (x, y), 25, color, thick)
 
         d_img = self.defect.image
@@ -152,35 +153,42 @@ class DefectEdit(QWidget):
             value=color,
         )
 
-        if x_t + tooltip.shape[1] >2400:
-            print("缩放图超出边界")
-            if  y_t + tooltip.shape[0] > 1220:
-                breakpoint()
-                np_origin[
-                y_t : y_t + tooltip.shape[0]-1220,
-                x_t : x_t + tooltip.shape[1]-1100,
-            ] = tooltip
-            else:
-                np_origin[
-                y_t : y_t + tooltip.shape[0]+1220,
-                x_t : x_t + tooltip.shape[1]-1100,
-            ] = tooltip
+       
+        
+        if  self.defect.xmin  >= 1200 and self.defect.ymin  >= 1200:
+                print("这是四")
+                x_t = self.defect.xmax + line_length -1200
+                y_t = self.defect.ymin  - 50 - 1200
 
-            #代码未运行成功，暂未找到解决办法。
+               
+                np_origin[
+                 y_t : y_t + tooltip.shape[0],
+                 x_t : x_t + tooltip.shape[1],
+                    ] = tooltip
+
+                print(y_t,tooltip.shape[0])
+
+        elif self.defect.ymin < 1200 and self.defect.xmin  >1200:
+                print("这是一")
+                x_t  =  self.defect.xmax + line_length -1200
+                y_t  =  self.defect.ymin  - 50 + 1200
+                if y_t+r_h >=2400:
+                    print("太大了")
+                else:
+                    np_origin[
+                 y_t : y_t + tooltip.shape[0],
+                 x_t : x_t + tooltip.shape[1],
+                    ] = tooltip
+                
+                
+                print(y_t,tooltip.shape[0])
             
-        else:
-            np_origin[
-                y_t : y_t + tooltip.shape[0],
-                x_t : x_t + tooltip.shape[1],
-            ] = tooltip
-           
 
         return numpy2pixmap(np_origin).scaledToWidth(self.width(), Qt.SmoothTransformation)
         
         return numpy2pixmap(np_origin).scaledToWidth(
             self.width(), Qt.SmoothTransformation
         )
-    
 
 
 class DefectLayoutItem(QGraphicsLayoutItem):
