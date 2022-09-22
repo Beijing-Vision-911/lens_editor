@@ -12,7 +12,7 @@ class Orientation(Enum):
 
 
 class Minimap:
-    def __init__(self, defect: Defect):
+    def __init__(self, defect: Defect)-> None:
         self.defect = defect
         self.image = cv2.imread(str(defect.image_path))
         self.margin = 50

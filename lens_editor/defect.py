@@ -40,7 +40,7 @@ class Defect:
         self.mark = False
 
     def __repr__(self) -> str:
-        return f"{self.name}: {self.xmin}, {self.ymin}, {self.xmax}, {self.ymax}"
+        return f"Defect[{self.name}: {self.xmin}, {self.ymin}, {self.xmax}, {self.ymax}]"
 
     @property
     def name(self):
@@ -69,7 +69,7 @@ class Defect:
     def _crop(self, orig_img):
         self.image = orig_img[self.ymin : self.ymax, self.xmin : self.xmax].copy()
 
-    def remove(self):
+    def remove(self)-> None:
         self.modified = True
         self.tree.getroot().remove(self._obj)
 
