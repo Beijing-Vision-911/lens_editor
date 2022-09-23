@@ -153,15 +153,15 @@ class DefectEdit(QWidget):
             value=color,
         )
         if y_t + r_h >= 2400:  # 缺陷在下方
-            x_t = self.defect.xmax + line_length
+            x_t = self.defect.xmax + line_length -100-r_w
             y_t = self.defect.ymin - r_h
             np_origin[
                 y_t : y_t + tooltip.shape[0],
                 x_t : x_t + tooltip.shape[1],
             ] = tooltip
         elif y_t <= 0:  #  缺陷在上方
-            x_t = self.defect.xmax + line_length
-            y_t = self.defect.ymin
+            x_t = self.defect.xmax + line_length-100-r_w
+            y_t = self.defect.ymin 
             np_origin[
                 y_t : y_t + tooltip.shape[0],
                 x_t : x_t + tooltip.shape[1],
