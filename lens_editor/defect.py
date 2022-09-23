@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
     QGraphicsSimpleTextItem,
 )
 from PySide6.QtGui import QPixmap, QImage, QBrush, QPen, QColor
-import cv2
+import cv2 #type: ignore
 import numpy as np
 from pathlib import Path
 from itertools import groupby
@@ -97,11 +97,11 @@ class DefectEdit(QWidget):
         label_name = QLabel("Name:")
         label_name_field = QLabel(self.defect.name)
         label_f_path = QLabel("XML Path:")
-        label_f_path_field = QLabel(str(self.defect.file_path))
-        label_f_path_field.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        label_f_path_field: QLabel = QLabel(str(self.defect.file_path))  
+        label_f_path_field.setTextInteractionFlags(Qt.TextSelectableByMouse) #type:ignore
         label_i_path = QLabel("Image Path:")
         label_i_path_field = QLabel(str(self.defect.image_path))
-        label_i_path_field.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        label_i_path_field.setTextInteractionFlags(Qt.TextSelectableByMouse) #type:ignore
         label_coordinate = QLabel("Coordinate:")
         label_coordinate_field = QLabel(
             f"({self.defect.xmin}, {self.defect.ymin}) ({self.defect.xmax}, {self.defect.ymax})"
@@ -110,8 +110,8 @@ class DefectEdit(QWidget):
         label_width_field = QLabel(f"{self.defect.width}")
         label_height = QLabel(f"Height:")
         label_height_field = QLabel(f"{self.defect.height}")
-        label_map = QLabel()
-        label_map.setAlignment(Qt.AlignCenter)
+        label_map: QLabel = QLabel()
+        label_map.setAlignment(Qt.AlignCenter)  #type:ignore
         label_map.setPixmap(self._minimap())
 
         layout.addWidget(label_name, 0, 0)
@@ -133,8 +133,8 @@ class DefectEdit(QWidget):
         color = (0, 190, 246)
         line_length = 50
         np_origin = cv2.imread(str(self.defect.image_path))
-        x, x_t = self.defect.xmax, self.defect.xmax + line_length 
-        y, y_t = self.defect.ymin, self.defect.ymin  - 50 
+        x, x_t = self.defect.xmax, self.defect.xmax + line_length
+        y, y_t = self.defect.ymin, self.defect.ymin - 50
         # cv2.line(np_origin, (x, y), (x_t, y_t), color, 3)
         cv2.circle(np_origin, (x, y), 25, color, thick)
 
@@ -152,40 +152,36 @@ class DefectEdit(QWidget):
             cv2.BORDER_CONSTANT | cv2.BORDER_ISOLATED,
             value=color,
         )
-
-       
+        if y_t + r_h >= 2400:  # 缺陷在下方
+            x_t = self.defect.xmax + line_length
+            y_t = self.defect.ymin - r_h
+            np_origin[
+                y_t : y_t + tooltip.shape[0],
+                x_t : x_t + tooltip.shape[1],
+            ] = tooltip
+        elif y_t <= 0:  #  缺陷在上方
+            x_t = self.defect.xmax + line_length
+            y_t = self.defect.ymin
+            np_origin[
+                y_t : y_t + tooltip.shape[0],
+                x_t : x_t + tooltip.shape[1],
+            ] = tooltip
         
-        if  self.defect.xmin  >= 1200 and self.defect.ymin  >= 1200:
-                print("这是四")
-                x_t = self.defect.xmax + line_length -1200
-                y_t = self.defect.ymin  - 50 - 1200
+        if x_t + tooltip.shape[1] >= 2400:  # 缺陷在右方
+            x_t = self.defect.xmax + line_length - 100 - r_w
+            y_t = self.defect.ymin - 50
+            np_origin[
+                y_t : y_t + tooltip.shape[0],
+                x_t : x_t + tooltip.shape[1],
+            ] = tooltip
+        np_origin[
+            y_t : y_t + tooltip.shape[0],
+            x_t : x_t + tooltip.shape[1],
+        ] = tooltip
 
-               
-                np_origin[
-                 y_t : y_t + tooltip.shape[0],
-                 x_t : x_t + tooltip.shape[1],
-                    ] = tooltip
-
-                print(y_t,tooltip.shape[0])
-
-        elif self.defect.ymin < 1200 and self.defect.xmin  >1200:
-                print("这是一")
-                x_t  =  self.defect.xmax + line_length -1200
-                y_t  =  self.defect.ymin  - 50 + 1200
-                if y_t+r_h >=2400:
-                    print("太大了")
-                else:
-                    np_origin[
-                 y_t : y_t + tooltip.shape[0],
-                 x_t : x_t + tooltip.shape[1],
-                    ] = tooltip
-                
-                
-                print(y_t,tooltip.shape[0])
-            
-
-        return numpy2pixmap(np_origin).scaledToWidth(self.width(), Qt.SmoothTransformation)
-        
+        return numpy2pixmap(np_origin).scaledToWidth(
+            self.width(), Qt.SmoothTransformation
+        )
         return numpy2pixmap(np_origin).scaledToWidth(
             self.width(), Qt.SmoothTransformation
         )
