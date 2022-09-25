@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (
     QGraphicsLayoutItem,
     QGridLayout,
     QLabel,
+    QToolTip,
     QWidget,
     QGraphicsItem,
     QGraphicsSimpleTextItem,
@@ -189,7 +190,7 @@ class DefectLayoutItem(QGraphicsLayoutItem):
 
 
 class DefectItem(QGraphicsItemGroup):
-    def __init__(self, defect: Defect, parent=None) -> None:
+    def __init__(self, defect: Defect, msg="", parent=None) -> None:
         super().__init__(parent)
         self.setCacheMode(QGraphicsItem.DeviceCoordinateCache)
         self.setFlag(QGraphicsItem.ItemIsSelectable)
@@ -205,6 +206,7 @@ class DefectItem(QGraphicsItemGroup):
         self.addToGroup(self.img)
         self._rect = self.childrenBoundingRect()
         self._label_color = QColor("black")
+        self.msg = msg
 
     def paint(self, painter, option, widget=None):
         painter.drawRect(self._rect)
@@ -215,9 +217,15 @@ class DefectItem(QGraphicsItemGroup):
     def get_layout_item(self) -> DefectLayoutItem:
         return DefectLayoutItem(self)
 
-    def mouseDoubleClickEvent(self, _) -> None:
-        self.defect_edit = DefectEdit(self.defect)
-        self.defect_edit.show()
+    def mousePressEvent(self, event) -> None:
+        if event.button() == Qt.RightButton:
+           QToolTip.showText(event.screenPos(), self.msg)
+        super().mousePressEvent(event)
+
+    def mouseDoubleClickEvent(self, event) -> None:
+        if event.button() == Qt.LeftButton:
+            self.defect_edit = DefectEdit(self.defect)
+            self.defect_edit.show()
 
     def mark_toggle(self) -> bool:
         if state := self.defect.mark_toggle():
