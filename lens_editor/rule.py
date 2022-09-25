@@ -37,10 +37,26 @@ def property_sexp(sexp):
     return PropertyHandler()
 
 
+def left_check_sexp(sexp):
+    class LeftCheckHandler(AbstractHandler):
+        def handle(self, defect):
+            criteria = sexp[1:]
+            # TODO:
+            # calculate left side position, check ROI with existing defects
+            # if ROI greater than 0.5, check label name.
+            if ds := [d for d in defect.lens.left if d.name.endswith(criteria)]:
+                return f"found {[d.name for d in ds]} in left"
+            return super().handle(defect)
+
+    return LeftCheckHandler()
+
+
 # Parser
 def sexp_parser(sexp):
     if sexp[0] in "xyhw":
         return property_sexp(sexp)
+    if sexp[0] == "-":
+        return left_check_sexp(sexp)
 
 
 def line_parser(line):

@@ -1,3 +1,4 @@
+from itertools import chain
 from pathlib import Path
 import sys
 from PySide6.QtCore import QMutex, QThreadPool, Qt
@@ -29,7 +30,7 @@ from .search import FilterParser, QuickSearchSlot
 
 from .thread import Worker
 
-from .defect import defect_from_xml, DefectItem, defect_to_xml
+from .defect import DefectItem, Lens
 
 from functools import partial
 
@@ -118,7 +119,9 @@ class MainWindow(QMainWindow):
             i.rename(new_label)
 
     def save_btn_clicked(self):
-        mod_files_num = defect_to_xml(self.defects)
+        mod_files_num = len([i for i in self.lens if i.modified])
+        for i in self.lens:
+            i.save()
         self.status_bar.showMessage(f"Saved {mod_files_num} changes")
 
     def mark_btn_clicked(self):
@@ -160,11 +163,11 @@ class MainWindow(QMainWindow):
 
         parms = [(x, find_jpeg(x)) for x in xml_files if find_jpeg(x)]
 
-        self.defects = []
+        self.lens = []
         self.total_file = len(parms)
         self.processed_file = 0
         for f, j in parms:
-            w = Worker(defect_from_xml, f, j)
+            w = Worker(Lens, f, j)
             w.signals.result.connect(self.worker_done)
             self.thread_pool.start(w)
 
@@ -172,9 +175,9 @@ class MainWindow(QMainWindow):
         file_path = QFileDialog.getExistingDirectory()
         self._load_files(file_path)
 
-    def worker_done(self, d_list):
+    def worker_done(self, lz):
         self.mutex.lock()
-        self.defects += d_list
+        self.lens.append(lz)
         self.processed_file += 1
         self.status_bar.showMessage(
             f"Loading files: {self.total_file}/{self.processed_file}"
@@ -183,7 +186,8 @@ class MainWindow(QMainWindow):
 
         if self.processed_file == self.total_file:
             self.defects = sorted(
-                self.defects, key=lambda x: (x.name, x.width, x.height)
+                chain(*[l.defects for l in self.lens]),
+                key=lambda x: (x.name, x.width, x.height),
             )
             self.view_update(self.defects)
             complete_candidates = list(set([d.name for d in self.defects]))
