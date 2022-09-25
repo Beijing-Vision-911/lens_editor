@@ -22,9 +22,9 @@ class FilterParser:
         if filter_cmd.startswith('mark'):
             return list(filter(lambda d: d.mark, d_list))
         if filter_cmd.startswith('mod'):
-            return list(filter(lambda d: d.modified, d_list))
+            return list(filter(lambda d: d.lens.modified, d_list))
         if filter_cmd.startswith('-mod'):
-            return list(filter(lambda d: not d.modified, d_list))
+            return list(filter(lambda d: not d.lens.modified, d_list))
         if filter_cmd.startswith("name="):
             names = filter_cmd[5:].split('+')
             return list(filter(lambda d: d.name in names, d_list))

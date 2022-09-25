@@ -31,6 +31,7 @@ from .search import FilterParser, QuickSearchSlot
 from .thread import Worker
 
 from .defect import DefectItem, Lens
+from .rule_edit import RuleEditWindow
 
 from functools import partial
 
@@ -59,6 +60,10 @@ class MainWindow(QMainWindow):
             lambda: self.filter_apply(self.search_bar.text())
         )
         bottom_layout.addWidget(self.search_bar)
+
+        self.rule_edit_btn = QPushButton("Rule")
+        self.rule_edit_btn.clicked.connect(self.rule_edit_btn_clicked)
+        bottom_layout.addWidget(self.rule_edit_btn)
 
         self.mark_btn = QPushButton("Mark(a)")
         self.mark_btn.clicked.connect(self.mark_btn_clicked)
@@ -103,6 +108,10 @@ class MainWindow(QMainWindow):
         for i in map(str, range(1, 9)):
             QShortcut(i, self, partial(slot_apply, i))
             QShortcut(QKeySequence(f"Ctrl+{i}"), self, partial(slot_set, i))
+
+    def rule_edit_btn_clicked(self):
+        self.rule_window = RuleEditWindow(main_window=self)
+        self.rule_window.show()
 
     def rename_btn_clicked(self):
         if not hasattr(self, "scene"):

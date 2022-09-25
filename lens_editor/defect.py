@@ -38,11 +38,6 @@ class Lens:
         self.left = [d for d in self.defects if d.x < 1200]
         self.right = [d for d in self.defects if d.x >= 1200]
 
-    def rule_test(self, ruleset):
-        for d in self.right:
-            s = ruleset(d)
-            print(d)
-
     def save(self):
         if self.modified:
             self.tree.write(str(self.xml_path))
