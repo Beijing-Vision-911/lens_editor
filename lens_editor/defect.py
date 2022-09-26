@@ -17,6 +17,8 @@ import numpy as np
 from pathlib import Path
 from typing import List
 
+from lens_editor.minimap import Minimap, numpy2pixmap
+
 
 class Lens:
     def __init__(self, xml_path: Path, img_path: Path):
@@ -93,12 +95,7 @@ class Defect:
         return self.mark
 
 
-def numpy2pixmap(np_img) -> QPixmap:
-    height, width, channel = np_img.shape
-    qimg = QImage(
-        np_img.data, width, height, width * channel, QImage.Format_RGB888
-    ).rgbSwapped()
-    return QPixmap(qimg)
+
 
 
 class DefectEdit(QWidget):
@@ -142,40 +139,40 @@ class DefectEdit(QWidget):
         layout.addWidget(label_map, 6, 0, 1, 2)
 
     def _minimap(self) -> QPixmap:
-        thick = 3
-        color = (0, 190, 246)
-        line_length = 50
-        # np_origin = cv2.imread(str(self.defect.lens.image_path))
-        np_origin = self.defect.lens.img.copy()
-        x, x_t = self.defect.xmax, self.defect.xmax + line_length
-        y, y_t = self.defect.ymin, self.defect.ymin - 50
-        # cv2.line(np_origin, (x, y), (x_t, y_t), color, 3)
-        cv2.circle(np_origin, (x, y), 25, color, thick)
+        minimap = Minimap(self.defect, self.width())
+        return minimap.first()
+    #     thick = 3
+    #     color = (0, 190, 246)
+    #     line_length = 50
+    #     # np_origin = cv2.imread(str(self.defect.lens.image_path))
+    #     np_origin = self.defect.lens.img.copy()
+    #     x, x_t = self.defect.xmax, self.defect.xmax + line_length
+    #     y, y_t = self.defect.ymin, self.defect.ymin - 50
+    #     # cv2.line(np_origin, (x, y), (x_t, y_t), color, 3)
+    #     cv2.circle(np_origin, (x, y), 25, color, thick)
 
-        # d_img = self.defect.image
-        # d_w, d_h = d_img.shape[:2]
-        # r_w = 100
-        # r_h = int(r_w * d_w / d_h)
-        # detail_img = cv2.resize(d_img, (r_w, r_h))
-        # tooltip = cv2.copyMakeBorder(
-        #     detail_img,
-        #     thick,
-        #     thick,
-        #     thick,
-        #     thick,
-        #     cv2.BORDER_CONSTANT | cv2.BORDER_ISOLATED,
-        #     value=color,
+    #     d_img = self.defect.image
+    #     d_w, d_h = d_img.shape[:2]
+    #     r_w = 100
+    #     r_h = int(r_w * d_w / d_h)
+    #     detail_img = cv2.resize(d_img, (r_w, r_h))
+    #     tooltip = cv2.copyMakeBorder(
+    #         detail_img,
+    #         thick,
+    #         thick,
+    #         thick,
+    #         thick,
+    #         cv2.BORDER_CONSTANT | cv2.BORDER_ISOLATED,
+    #         value=color,
+    #     )
+    #     np_origin[
+    #         y_t : y_t + tooltip.shape[0],
+    #         x_t : x_t + tooltip.shape[1],
+    #     ] = tooltip
+    #     # return numpy2pixmap(np_origin).scaledToWidth(self.width(), Qt.SmoothTransformation)
+    #     return numpy2pixmap(np_origin).scaledToWidth(
+    #         self.width(), Qt.SmoothTransformation
         # )
-        # np_origin[
-        #     y_t : y_t + tooltip.shape[0],
-        #     x_t : x_t + tooltip.shape[1],
-        # ] = tooltip
-        # return numpy2pixmap(img).scaledToWidth(self.width(), Qt.SmoothTransformation)
-        return numpy2pixmap(np_origin).scaledToWidth(
-            self.width(), Qt.SmoothTransformation
-        )
-
-
 class DefectLayoutItem(QGraphicsLayoutItem):
     def __init__(self, group, parent=None) -> None:
         super().__init__(parent)
