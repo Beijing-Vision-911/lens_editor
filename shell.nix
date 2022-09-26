@@ -1,7 +1,7 @@
 { stdenv
 , lib
 , mkShell
-, python38Packages
+, python310Packages
 , taglib
 , openssl
 , git
@@ -22,7 +22,7 @@
 , nodejs
 }:
 let
-  pypkgs = python38Packages;
+  pypkgs = python310Packages;
 in
 mkShell rec {
   name = "pythonVenv";

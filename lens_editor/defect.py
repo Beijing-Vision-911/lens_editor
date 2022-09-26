@@ -4,39 +4,53 @@ from PySide6.QtWidgets import (
     QGraphicsItemGroup,
     QGraphicsPixmapItem,
     QGraphicsLayoutItem,
-    QGraphicsTextItem,
     QGridLayout,
     QLabel,
+    QToolTip,
     QWidget,
     QGraphicsItem,
     QGraphicsSimpleTextItem,
 )
-from PySide6.QtGui import QPixmap, QImage, QBrush, QPen, QColor
+from PySide6.QtGui import QPixmap, QImage, QBrush, QColor
 import cv2
 import numpy as np
 from pathlib import Path
-from itertools import groupby
 from typing import List
 
 
+class Lens:
+    def __init__(self, xml_path: Path, img_path: Path):
+        self.xml_path = xml_path
+        self.img_path = img_path
+        self.defects = self.load_defects()
+        self.modified = False
+        self.leftandright()
+
+    def load_defects(self):
+        self.tree = ET.parse(str(self.xml_path))
+        self.img = cv2.imread(str(self.img_path))
+        root = self.tree.getroot()
+        return [Defect(self, obj) for obj in root.iter("object")]
+
+    def set_modified(self, state: bool):
+        self.modified = state
+
+    def leftandright(self):
+        self.left = [d for d in self.defects if d.x < 1200]
+        self.right = [d for d in self.defects if d.x >= 1200]
+
+    def save(self):
+        if self.modified:
+            self.tree.write(str(self.xml_path))
+            self.modified = False
+
+
 class Defect:
-    def __init__(
-        self,
-        file_path: Path,
-        img_path: Path,
-        tree: ET.ElementTree,
-        obj: ET.Element,
-        img: np.ndarray,
-    ):
-        self.file_path: Path = file_path
-        self.image_path: Path = img_path
-        self.tree = tree
+    def __init__(self, lens: Lens, obj: ET.Element):
+        self.lens = lens
         self._obj = obj
         self._parse_obj(obj)
-        self._crop(img)
-        # modify state of xml file, set to true after changes have benn saved
-        self.modified = False
-        # mark state
+        self._crop(lens.img)
         self.mark = False
 
     def __repr__(self) -> str:
@@ -54,7 +68,7 @@ class Defect:
     def name(self, new_name):
         name = self._obj.find("name")
         name.text = new_name
-        self.modified = True
+        self.lens.set_modified(True)
         self._name = new_name
 
     def _parse_obj(self, obj):
@@ -69,9 +83,10 @@ class Defect:
     def _crop(self, orig_img):
         self.image = orig_img[self.ymin : self.ymax, self.xmin : self.xmax].copy()
 
-    def remove(self)-> None:
-        self.modified = True
-        self.tree.getroot().remove(self._obj)
+    def remove(self) -> None:
+        self.lens.set_modified(True)
+        self.lens.tree.getroot().remove(self._obj)
+
 
     def mark_toggle(self) -> bool:
         "return current mark state"
@@ -96,10 +111,10 @@ class DefectEdit(QWidget):
         label_name = QLabel("Name:")
         label_name_field = QLabel(self.defect.name)
         label_f_path = QLabel("XML Path:")
-        label_f_path_field = QLabel(str(self.defect.file_path))
+        label_f_path_field = QLabel(str(self.defect.lens.xml_path))
         label_f_path_field.setTextInteractionFlags(Qt.TextSelectableByMouse)
         label_i_path = QLabel("Image Path:")
-        label_i_path_field = QLabel(str(self.defect.image_path))
+        label_i_path_field = QLabel(str(self.defect.lens.img_path))
         label_i_path_field.setTextInteractionFlags(Qt.TextSelectableByMouse)
         label_coordinate = QLabel("Coordinate:")
         label_coordinate_field = QLabel(
@@ -131,7 +146,8 @@ class DefectEdit(QWidget):
         thick = 3
         color = (0, 190, 246)
         line_length = 50
-        np_origin = cv2.imread(str(self.defect.image_path))
+        # np_origin = cv2.imread(str(self.defect.lens.image_path))
+        np_origin = self.defect.lens.img.copy()
         x, x_t = self.defect.xmax, self.defect.xmax + line_length
         y, y_t = self.defect.ymin, self.defect.ymin - 50
         # cv2.line(np_origin, (x, y), (x_t, y_t), color, 3)
@@ -175,7 +191,7 @@ class DefectLayoutItem(QGraphicsLayoutItem):
 
 
 class DefectItem(QGraphicsItemGroup):
-    def __init__(self, defect: Defect, parent=None) -> None:
+    def __init__(self, defect: Defect, msg="", parent=None) -> None:
         super().__init__(parent)
         self.setCacheMode(QGraphicsItem.DeviceCoordinateCache)
         self.setFlag(QGraphicsItem.ItemIsSelectable)
@@ -191,6 +207,7 @@ class DefectItem(QGraphicsItemGroup):
         self.addToGroup(self.img)
         self._rect = self.childrenBoundingRect()
         self._label_color = QColor("black")
+        self.msg = msg
 
     def paint(self, painter, option, widget=None):
         painter.drawRect(self._rect)
@@ -201,9 +218,15 @@ class DefectItem(QGraphicsItemGroup):
     def get_layout_item(self) -> DefectLayoutItem:
         return DefectLayoutItem(self)
 
-    def mouseDoubleClickEvent(self, _) -> None:
-        self.defect_edit = DefectEdit(self.defect)
-        self.defect_edit.show()
+    def mousePressEvent(self, event) -> None:
+        if event.button() == Qt.RightButton:
+           QToolTip.showText(event.screenPos(), self.msg)
+        super().mousePressEvent(event)
+
+    def mouseDoubleClickEvent(self, event) -> None:
+        if event.button() == Qt.LeftButton:
+            self.defect_edit = DefectEdit(self.defect)
+            self.defect_edit.show()
 
     def mark_toggle(self) -> bool:
         if state := self.defect.mark_toggle():
@@ -219,25 +242,7 @@ class DefectItem(QGraphicsItemGroup):
     def itemChange(self, change, value):
         if change == QGraphicsItem.ItemSelectedChange:
             if value:
-                self.label.setBrush(QBrush(QColor("red")))
+                self.label.setBrush(QBrush(QColor("green")))
             else:
                 self.label.setBrush(QBrush(QColor("black")))
         return super().itemChange(change, value)
-
-
-def defect_from_xml(xml_path: Path, img_path: Path) -> List[Defect]:
-    tree = ET.parse(str(xml_path))
-    root = tree.getroot()
-    img = cv2.imread(str(img_path))
-    return [Defect(xml_path, img_path, tree, obj, img) for obj in root.iter("object")]
-
-
-def defect_to_xml(d_list: List[Defect]) -> int:
-    modified_list = [d for d in d_list if d.modified]
-    for p, g in groupby(modified_list, key=lambda x: x.file_path):
-        g_list = list(g)
-        tree = g_list[0].tree
-        tree.write(str(p), encoding="utf-8", xml_declaration=True)
-        for d in g_list:
-            d.modified = False
-    return len(modified_list)

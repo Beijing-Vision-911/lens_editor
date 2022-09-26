@@ -3,3 +3,4 @@
 /.venv/
 /lens_editor.egg-info/
 /lens_editor/__pycache__/
+/lens_editor/tests/__pycache__/

@@ -1,3 +1,6 @@
+from itertools import chain
+from pathlib import Path
+
 import sys
 from functools import partial
 from itertools import groupby
@@ -15,7 +18,16 @@ from PySide6.QtWidgets import (QApplication, QCompleter, QFileDialog,
 from .defect import DefectItem, defect_from_xml, defect_to_xml
 from .search import FilterParser, QuickSearchSlot
 from .thread import Worker
+
 from .view import View
+
+
+from .defect import DefectItem, Lens
+from .rule_edit import RuleEditWindow
+
+from functools import partial
+
+from typing import List
 
 
 class MainWindow(QMainWindow):
@@ -41,7 +53,12 @@ class MainWindow(QMainWindow):
         )
         bottom_layout.addWidget(self.search_bar)
 
-        self.mark_btn: QPushButton = QPushButton("Mark(a)")
+
+        self.rule_edit_btn = QPushButton("Rule")
+        self.rule_edit_btn.clicked.connect(self.rule_edit_btn_clicked)
+        bottom_layout.addWidget(self.rule_edit_btn)
+
+        self.mark_btn = QPushButton("Mark(a)")
         self.mark_btn.clicked.connect(self.mark_btn_clicked)
         bottom_layout.addWidget(self.mark_btn)
 
@@ -85,7 +102,13 @@ class MainWindow(QMainWindow):
             QShortcut(i, self, partial(slot_apply, i))
             QShortcut(QKeySequence(f"Ctrl+{i}"), self, partial(slot_set, i))
 
-    def rename_btn_clicked(self) -> None:
+
+    def rule_edit_btn_clicked(self)-> None:
+        self.rule_window = RuleEditWindow(main_window=self)
+        self.rule_window.show()
+
+    def rename_btn_clicked(self):
+
         if not hasattr(self, "scene"):
             return
         items = self.scene.selectedItems()
@@ -99,8 +122,12 @@ class MainWindow(QMainWindow):
         for i in items:
             i.rename(new_label)
 
-    def save_btn_clicked(self) -> None:
-        mod_files_num:int = defect_to_xml(self.defects)
+
+    def save_btn_clicked(self):
+        mod_files_num : int= len([i for i in self.lens if i.modified])
+        for i in self.lens:
+            i.save()
+
         self.status_bar.showMessage(f"Saved {mod_files_num} changes")
 
     def mark_btn_clicked(self) -> None:
@@ -140,12 +167,14 @@ class MainWindow(QMainWindow):
             print(f"Cannot find jpeg for {xml_file}")
             return None
 
-        parms: List = [(x, find_jpeg(x)) for x in xml_files if find_jpeg(x)] # type:ignore
-        self.defects:List = []
+        parms: List = [(x, find_jpeg(x)) for x in xml_files if find_jpeg(x)]
+
+        self.lens = []
+
         self.total_file = len(parms)
         self.processed_file = 0
         for f, j in parms:
-            w = Worker(defect_from_xml, f, j)
+            w = Worker(Lens, f, j)
             w.signals.result.connect(self.worker_done)
             self.thread_pool.start(w)
 
@@ -153,9 +182,11 @@ class MainWindow(QMainWindow):
         file_path = QFileDialog.getExistingDirectory()
         self._load_files(file_path)
 
-    def worker_done(self, d_list) -> None:
+
+    def worker_done(self, lz)-> None: 
+
         self.mutex.lock()
-        self.defects += d_list
+        self.lens.append(lz)
         self.processed_file += 1
         self.status_bar.showMessage(
             f"Loading files: {self.total_file}/{self.processed_file}"
@@ -164,7 +195,8 @@ class MainWindow(QMainWindow):
 
         if self.processed_file == self.total_file:
             self.defects = sorted(
-                self.defects, key=lambda x: (x.name, x.width, x.height)
+                chain(*[l.defects for l in self.lens]),
+                key=lambda x: (x.name, x.width, x.height),
             )
             self.view_update(self.defects)
             complete_candidates: list = list(set([d.name for d in self.defects]))
@@ -174,7 +206,7 @@ class MainWindow(QMainWindow):
                 f"No Filter, Category: {len(complete_candidates)},Total: {len(self.defects)}"
             )
 
-    def view_update(self, d_list) -> None:
+    def view_update(self, lz) -> None:
         g_layout: QGraphicsGridLayout = QGraphicsGridLayout()
         g_layout.setContentsMargins(10, 10, 10, 10)
         g_layout.setSpacing(25)
