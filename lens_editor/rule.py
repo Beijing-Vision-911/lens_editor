@@ -26,55 +26,49 @@ class AbstractHandler(Handler):
         return None
 
 
-# Handler Implementation
-def property_sexp(sexp):
-    class PropertyHandler(AbstractHandler):
-        def handle(self, defect):
-            if eval(f"defect.{sexp}"):
-                return f"{sexp} is not valid"
-            return super().handle(defect)
-
-    return PropertyHandler()
-
-
-def left_check_sexp(sexp):
-    class LeftCheckHandler(AbstractHandler):
-        def handle(self, defect):
-            criteria = sexp[1:]
-            # TODO:
-            # calculate left side position, check ROI with existing defects
-            # if ROI greater than 0.5, check label name.
-            if ds := [d for d in defect.lens.left if d.name.endswith(criteria)]:
-                return f"found {[d.name for d in ds]} in left"
-            return super().handle(defect)
-
-    return LeftCheckHandler()
-
-
 # Parser
 def sexp_parser(sexp):
     if sexp[0] in "xyhw":
-        return property_sexp(sexp)
-    if sexp[0] == "-":
-        return left_check_sexp(sexp)
+        return lambda d: eval(f"d.{sexp}")
 
 
 def line_parser(line):
     key, *sexps = line.split()
-    head = AbstractHandler()
-    reduce(lambda x, y: x.set_next(y), map(sexp_parser, sexps), head)
-    return key, head
+
+    class LineHandler(AbstractHandler):
+        def handle(self, defect):
+            if all(map(lambda f: f(defect), map(sexp_parser, sexps))):
+                return f"{sexps}"
+            return super().handle(defect)
+
+    return key, LineHandler()
+
+
+class DefaultFactory:
+    def __init__(self):
+        self.head = AbstractHandler()
+        self.next = None
+
+    def add(self, handler):
+        if self.next:
+            self.next.set_next(handler)
+        else:
+            self.head.set_next(handler)
+        self.next = handler
+
+    def handle(self, defect):
+        return self.head.handle(defect)
 
 
 class Ruleset:
     def __init__(self, rule_text):
-        self.rules = defaultdict(AbstractHandler)
+        self.rules = defaultdict(DefaultFactory)
         self._parse(rule_text)
 
     def _parse(self, rule_text):
         for line in [l for l in rule_text.splitlines() if l.strip()]:
             key, handler = line_parser(line)
-            self.rules[key] = handler
+            self.rules[key].add(handler)
 
     def __call__(self, defect):
         return self.rules[defect.name].handle(defect)
