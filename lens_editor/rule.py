@@ -70,6 +70,11 @@ def sexp_parser(sexp):
                     return True
             return False
         return left_check
+    if sexp[0] == '+':
+        def right_check(d):
+            fn = xymapping(d.x, d.y)
+            return any([fn(d_.x, d_.y) for d_ in d.lens.right if d_.name.endswith(sexp[1:])])
+        return right_check
 
 def line_parser(line):
     key, *sexps = line.split()
@@ -110,4 +115,5 @@ class Ruleset:
             self.rules[key].add(handler)
 
     def __call__(self, defect):
+        print(defect)
         return self.rules[defect.name].handle(defect)

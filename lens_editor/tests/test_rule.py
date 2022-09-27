@@ -28,7 +28,7 @@ def test_rule_x():
 
 def test_rule_multiple():
     rule = Ruleset("1111 x>10 y>10")
-    d = Defect("1111", x=11, y=9)
+    d = Defect("1111", x=11, y=11)
     assert rule(d) is not None
 
 
