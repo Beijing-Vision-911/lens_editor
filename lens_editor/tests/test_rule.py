@@ -1,6 +1,7 @@
 from pytest import fixture
 from dataclasses import dataclass
-from ..rule import Ruleset
+from ..rule import Ruleset, xymapping
+
 
 
 @dataclass
@@ -46,6 +47,14 @@ def test_rule_empty():
 def test_rule_left_contain():
     rule = Ruleset("1111 -01")
     d = Defect("1111", x=9)
-    left = [Defect("0001", x=9)]
+    left = [Defect("0001", x=9,y=9,h=9,w=9)]
     d.lens.left = left
     assert rule(d) == "found ['0001'] in left"
+
+def test_xymapping():
+    x = 2400
+    y = 0
+    x_ = 0
+    y_ = 0
+    fn = xymapping(x,y)
+    assert fn(x_,y_) is False
