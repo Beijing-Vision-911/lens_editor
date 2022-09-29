@@ -13,7 +13,6 @@ from PySide6.QtGui import QPixmap, QImage, QBrush, QColor
 # from enum import Enum
 # from typing import Tuple
 import numpy as np
-from .defect import Lens
 # class Orientation(Enum):
 #     UP = 0
 #     DOWN = 1
@@ -64,21 +63,21 @@ def numpy2pixmap(np_img) -> QPixmap:
     return QPixmap(qimg)
 
 class Minimap:
-    def __init__(self, defect,width, show_all=False):
+    def __init__(self, defect,width,show_all=False):
         self.defect = defect
         self.width = width
         self.background :np.adarry = self.defect.lens.img.copy()
         if not show_all:
             self.draw(self.defect)
             return   
-        self.draw_all()
-    
+        self.draw_all(self)
+
     def draw(self,defect):
-        x, x_t = self.defect.xmax, self.defect.xmax + 50
-        y, y_t = self.defect.ymin, self.defect.ymin - 50
+        x_t =self.defect.xmax + 50
+        y_t = self.defect.ymin - 50
         if x_t >=1200 and y_t<=1200:
             self.first()
-        elif x_t<=1200 and y_t<1200:
+        elif x_t<1200 and y_t<1200:
             self.second()
         elif x_t<1200 and y_t>1200:
             self.third()
@@ -92,7 +91,7 @@ class Minimap:
         # }
         cv2.circle(self.background,(defect.xmin, defect.ymin),20, (255,0,0))   #x,y用来画圈，x_t,y_t,用来画缩略图
         # cv2.circle(self.background, (x, y), 25, 255,0,0, 3)       
-        
+    
     def first(self):
         thick = 3
         color = (0, 190, 246)
@@ -184,7 +183,7 @@ class Minimap:
             cv2.BORDER_CONSTANT | cv2.BORDER_ISOLATED,
             value=color,
         )
-        x_t = self.defect.xmax -r_w-30
+        x_t = self.defect.xmax -(2*r_w)
         y_t = self.defect.ymin -r_h-30
         self.background[
             y_t : y_t + tooltip.shape[0],
@@ -192,10 +191,9 @@ class Minimap:
         ] = tooltip
         return self.get_pixmap()
         
-    def draw_all(self):
-        lens = Lens()
-        lens.defects = Lens.load_defects()
-        for d in self.lens.defects:
+    def draw_all(self,lens):
+        self.lens = lens
+        for d in self.lens:
             self.draw(d)
 
     def get_pixmap(self) -> QPixmap:
