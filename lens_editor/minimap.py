@@ -14,6 +14,7 @@ from PySide6.QtGui import QPixmap, QImage, QBrush, QColor
 # from enum import Enum
 # from typing import Tuple
 import numpy as np
+
 # from lens_editor.rule_edit import RuleEditWindow
 # class Orientation(Enum):
 #     UP = 0
@@ -57,36 +58,26 @@ import numpy as np
 minimap = Minimap(defect)
 pixmap = minimap.get_pixmap()
 """
+
 def numpy2pixmap(np_img) -> QPixmap:
     height, width, channel = np_img.shape
     qimg = QImage(
         np_img.data, width, height, width * channel, QImage.Format_RGB888
     ).rgbSwapped()
     return QPixmap(qimg)
-
+    
 class Minimap():
     def __init__(self, defect,width,show_all=False):
         self.defect = defect
         self.width = width
         self.background :np.adarry = self.defect.lens.img.copy()
-        if not show_all:
-            self.draw(self.defect)
-            return   
-        self.draw_all(self)
+        # if not show_all:
+        #     self.draw(self.defect)
+        #     return   
+        self.draw(self.defect)
 
     def draw(self,defect):
-        x = self.defect.xmax
-        y = self.defect.ymin
-        # dic = {
-        #     "1":self.first(),
-        #     "2":self.second(),
-        #     "3":self.third(),
-        #     "4":self.four()
-        # }
-        cv2.circle(self.background,(defect.xmin, defect.ymin),20, (255,0,255))   #x,y用来画圈，x_t,y_t,用来画缩略图
-        cv2.circle(self.background, (x, y), 25, 255,0,0, 3)       
-    
-    def first(self):
+        self.defect = defect
         thick = 3
         color = (0, 190, 246)
         d_img = self.defect.image
@@ -105,6 +96,11 @@ class Minimap():
         )
         x_t =self.defect.xmax + 50
         y_t = self.defect.ymin - 50
+        x = self.defect.xmax
+        y = self.defect.ymin   
+        # for d in self.defect:
+        cv2.circle(self.background,(defect.xmin, defect.ymin),20, (255,0,255))   #x,y用来画圈，x_t,y_t,用来画缩略图
+        cv2.circle(self.background, (x, y), 25, 255,0,0, 3) 
         if x_t >=1200 and y_t<=1200:
             x_t = self.defect.xmax  -150
             y_t = self.defect.ymin +40
@@ -113,9 +109,9 @@ class Minimap():
                 x_t : x_t + tooltip.shape[1],
             ] = tooltip
         elif x_t<1200 and y_t<1200:
-             x_t = self.defect.xmax  -50
-             y_t = self.defect.ymin +10
-             self.background[
+            x_t = self.defect.xmax  -50
+            y_t = self.defect.ymin +10
+            self.background[
                 y_t : y_t + tooltip.shape[0],
                 x_t : x_t + tooltip.shape[1],
             ] = tooltip
@@ -127,18 +123,31 @@ class Minimap():
                 x_t : x_t + tooltip.shape[1],
             ] = tooltip
         elif x_t>=1200 and y_t>=1200:
-             x_t = self.defect.xmax -(2*r_w)
-             y_t = self.defect.ymin -r_h-30
-             self.background[
+            x_t = self.defect.xmax -(2*r_w)
+            y_t = self.defect.ymin -r_h-30
+            self.background[
                 y_t : y_t + tooltip.shape[0],
                 x_t : x_t + tooltip.shape[1],
             ] = tooltip
-        return numpy2pixmap(self.background).scaledToWidth(self.width, Qt.SmoothTransformation) 
+            
+        return numpy2pixmap(self.background).scaledToWidth(self.width, Qt.SmoothTransformation)
+          
 
-        
+        #         cv2.circle(self.background,(defect.xmin, defect.ymin),20, (255,0,255)) 
+        #         cv2.circle(self.background, (x, y), 25, 255,0,0, 3)
+        #         return self.get_pixmap()
+
+    def first(self,show_all = False):
+        # if not show_all:
+        #     self.draw(self.defect)
+        # else:   
+            self.draw(self.defect)
+       
     def draw_all(self):
-        for d in self.lens.defects:
+        for d in self.defect:
             self.draw(d)
+
+
 
     def get_pixmap(self) -> QPixmap:
         return numpy2pixmap(self.background).scaledToWidth(self.width, Qt.SmoothTransformation)

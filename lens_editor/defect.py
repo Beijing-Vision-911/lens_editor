@@ -1,3 +1,5 @@
+from lib2to3.pgen2.token import LESS, LESSEQUAL
+from re import M
 import xml.etree.ElementTree as ET
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -16,9 +18,7 @@ import cv2
 import numpy as np
 from pathlib import Path
 from typing import List
-
-from lens_editor.minimap import Minimap, numpy2pixmap
-
+from .minimap import Minimap,numpy2pixmap
 
 class Lens:
     def __init__(self, xml_path: Path, img_path: Path):
@@ -99,7 +99,7 @@ class Defect:
 
 
 class DefectEdit(QWidget):
-    def __init__(self, defect, parent=None) -> None:
+    def __init__(self, defect,parent=None) -> None:
         super().__init__(parent)
         self.defect = defect
         layout = QGridLayout()
@@ -139,8 +139,8 @@ class DefectEdit(QWidget):
         layout.addWidget(label_map, 6, 0, 1, 2)
 
     def _minimap(self) -> QPixmap:
-        minimap = Minimap(self.defect, self.width())
-        return minimap.first()
+        minimap = Minimap(self.defect,self.width())
+        return minimap.draw(self.defect) 
     #     thick = 3
     #     color = (0, 190, 246)
     #     line_length = 50
