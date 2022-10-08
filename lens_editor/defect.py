@@ -218,8 +218,13 @@ class DefectItem(QGraphicsItemGroup):
         return DefectLayoutItem(self)
 
     def mousePressEvent(self, event) -> None:
+        tooltip = f"""{self.msg}
+x: {self.defect.xmin}
+y: {self.defect.ymin}
+h: {self.defect.height}
+w: {self.defect.width}"""
         if event.button() == Qt.RightButton:
-           QToolTip.showText(event.screenPos(), self.msg)
+            QToolTip.showText(event.screenPos(), tooltip)
         super().mousePressEvent(event)
 
     def mouseDoubleClickEvent(self, event) -> None:
@@ -237,6 +242,9 @@ class DefectItem(QGraphicsItemGroup):
     def rename(self, name):
         self.defect.name = name
         self.label.setText(name)
+    
+    
+
 
     def itemChange(self, change, value):
         if change == QGraphicsItem.ItemSelectedChange:
