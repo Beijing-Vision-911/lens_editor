@@ -28,8 +28,10 @@ class AbstractHandler(Handler):
 def xymapping(x, y) -> bool:
     # 第一象限 > 第三
     if x >= 1200 and y <= 1200:
-        xmin = x-1250
-        xmax = x-1050
+
+        xmax = x-1250
+        xmin = x-1050
+
         ymin = 950 + y
         ymax = 1150 + y
         return lambda x,y: (x <= xmax and x >= xmin) and (y >= ymin and y <= ymax)
@@ -75,16 +77,6 @@ def sexp_parser(sexp):
             fn = xymapping(d.x, d.y)
             return any([fn(d_.x, d_.y) for d_ in d.lens.right if d_.name.endswith(sexp[1:])])
         return right_check
-
-    if sexp[0] == "W":
-        def left_widht(d):
-            fn = xymapping(d.x, d.y)
-            mappings = [d_.width for d_ in d.lens.left if fn(d_.x, d_.y)]
-            for w in mappings:
-                if w > eval(sexp[2:]):
-                    return True
-            return False
-        return left_widht
 
     if sexp[0] == "H":
         def left_height(d):
@@ -136,4 +128,7 @@ class Ruleset:
             self.rules[key].add(handler)
 
     def __call__(self, defect):
+
+        print(defect)
         return self.rules[defect.name].handle(defect)
+
