@@ -12,6 +12,10 @@ from PySide6.QtWidgets import (
     QWidget,
     QGraphicsItem,
     QGraphicsSimpleTextItem,
+    QGraphicsScene,
+    QGraphicsView,
+    QPushButton,
+    QGraphicsRectItem,
 )
 from PySide6.QtGui import QPixmap, QImage, QBrush, QColor
 import cv2
@@ -98,12 +102,15 @@ class Defect:
 
 
 
-class DefectEdit(QWidget):
+class DefectEdit(QWidget,Lens):
     def __init__(self, defect,parent=None) -> None:
         super().__init__(parent)
         self.defect = defect
+        self.defects = Lens.load_defects
         layout = QGridLayout()
         self.setLayout(layout)
+        self.test_button = QPushButton('EDIT', self)                     
+        self.test_button.clicked.connect(self.edit)
         label_name = QLabel("Name:")
         label_name_field = QLabel(self.defect.name)
         label_f_path = QLabel("XML Path:")
@@ -120,9 +127,9 @@ class DefectEdit(QWidget):
         label_width_field = QLabel(f"{self.defect.width}")
         label_height = QLabel(f"Height:")
         label_height_field = QLabel(f"{self.defect.height}")
-        label_map = QLabel()
-        label_map.setAlignment(Qt.AlignCenter)
-        label_map.setPixmap(self._minimap())
+        self.label_map = QLabel()
+        self.label_map.setAlignment(Qt.AlignCenter)
+        self.label_map.setPixmap(self._minimap())
 
         layout.addWidget(label_name, 0, 0)
         layout.addWidget(label_name_field, 0, 1)
@@ -136,11 +143,12 @@ class DefectEdit(QWidget):
         layout.addWidget(label_width_field, 4, 1)
         layout.addWidget(label_height, 5, 0)
         layout.addWidget(label_height_field, 5, 1)
-        layout.addWidget(label_map, 6, 0, 1, 2)
+        layout.addWidget(self.test_button,6, 1)
+        layout.addWidget(self.label_map, 7, 0, 1, 2) 
 
     def _minimap(self) -> QPixmap:
-        minimap = Minimap(self.defect,self.width())
-        return minimap.draw(self.defect) 
+        minimap = Minimap(self.defect,self.defects,self.width())
+        return minimap.draw(self.defect,self.defects) 
     #     thick = 3
     #     color = (0, 190, 246)
     #     line_length = 50
@@ -173,6 +181,23 @@ class DefectEdit(QWidget):
     #     return numpy2pixmap(np_origin).scaledToWidth(
     #         self.width(), Qt.SmoothTransformation
         # )
+    def edit(self):
+        # pen = QPen()
+        scene = QGraphicsScene()
+        scene.addPixmap(QPixmap("./169.jpeg"))
+        A = QGraphicsView()
+        # m_rectItem =QGraphicsRectItem()
+        # picture = QPixmap()
+
+        # m_rectItem.setRect(0, 0, 80, 80)
+        # m_rectItem.setPen(pen)
+        # m_rectItem.setBrush(QBrush(QColor(255, 0, 255)))
+        # m_rectItem.setFlag(QGraphicsItem.ItemIsMovable)
+
+        A.setScene(scene)
+        A.show()
+        exec()
+
 class DefectLayoutItem(QGraphicsLayoutItem):
     def __init__(self, group, parent=None) -> None:
         super().__init__(parent)

@@ -67,16 +67,23 @@ def numpy2pixmap(np_img) -> QPixmap:
     return QPixmap(qimg)
     
 class Minimap():
-    def __init__(self, defect,width,show_all=False):
+    def __init__(self,defect,defects,width,show_all=False):
         self.defect = defect
+        self.defects = defects
         self.width = width
         self.background :np.adarry = self.defect.lens.img.copy()
-        # if not show_all:
-        #     self.draw(self.defect)
-        #     return   
-        self.draw(self.defect)
+        if not show_all:
+            self.draw(self.defect,self.defects)  
+            return 
+        self.draw_all(self.defects)
 
-    def draw(self,defect):
+    def draw_all(self,defects):
+        self.defects = defects
+        for d in self.defects:
+            self.draw(d)
+
+    def draw(self,defect,defects):
+        self.defects = defects
         self.defect = defect
         thick = 3
         color = (0, 190, 246)
@@ -109,8 +116,8 @@ class Minimap():
                 x_t : x_t + tooltip.shape[1],
             ] = tooltip
         elif x_t<1200 and y_t<1200:
-            x_t = self.defect.xmax  -50
-            y_t = self.defect.ymin +10
+            x_t = self.defect.xmax  +50
+            y_t = self.defect.ymin +20
             self.background[
                 y_t : y_t + tooltip.shape[0],
                 x_t : x_t + tooltip.shape[1],
@@ -136,16 +143,6 @@ class Minimap():
         #         cv2.circle(self.background,(defect.xmin, defect.ymin),20, (255,0,255)) 
         #         cv2.circle(self.background, (x, y), 25, 255,0,0, 3)
         #         return self.get_pixmap()
-
-    def first(self,show_all = False):
-        # if not show_all:
-        #     self.draw(self.defect)
-        # else:   
-            self.draw(self.defect)
-       
-    def draw_all(self):
-        for d in self.defect:
-            self.draw(d)
 
 
 
