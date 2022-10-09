@@ -1,7 +1,11 @@
+import imghdr
 from lib2to3.pgen2.token import LESS, LESSEQUAL
+from operator import itemgetter
 from re import M
+from webbrowser import BackgroundBrowser
 import xml.etree.ElementTree as ET
 from PySide6.QtCore import Qt
+from PySide6 import QtCore, QtWidgets
 from PySide6.QtWidgets import (
     QGraphicsItemGroup,
     QGraphicsPixmapItem,
@@ -17,11 +21,12 @@ from PySide6.QtWidgets import (
     QPushButton,
     QGraphicsRectItem,
 )
-from PySide6.QtGui import QPixmap, QImage, QBrush, QColor
+from PySide6.QtGui import QPixmap, QImage, QBrush, QColor,QPen
 import cv2
-import numpy as np
+import lens_editor.pixmap as np
 from pathlib import Path
 from typing import List
+
 from .minimap import Minimap,numpy2pixmap
 
 class Lens:
@@ -102,7 +107,7 @@ class Defect:
 
 
 
-class DefectEdit(QWidget,Lens):
+class DefectEdit(QWidget,Lens,Defect):
     def __init__(self, defect,parent=None) -> None:
         super().__init__(parent)
         self.defect = defect
@@ -145,7 +150,13 @@ class DefectEdit(QWidget,Lens):
         layout.addWidget(label_height_field, 5, 1)
         layout.addWidget(self.test_button,6, 1)
         layout.addWidget(self.label_map, 7, 0, 1, 2) 
-
+        self.scene = QGraphicsScene()
+        self.item = QGraphicsPixmapItem()
+        self.scene.addItem(self.item)
+        self.A = QGraphicsView()
+        self.A.setScene(self.scene)
+        self.A.resize(1200,1200)
+        self.rect_item = QtWidgets.QGraphicsRectItem()
     def _minimap(self) -> QPixmap:
         minimap = Minimap(self.defect,self.defects,self.width())
         return minimap.draw(self.defect,self.defects) 
@@ -182,22 +193,18 @@ class DefectEdit(QWidget,Lens):
     #         self.width(), Qt.SmoothTransformation
         # )
     def edit(self):
-        # pen = QPen()
-        scene = QGraphicsScene()
-        scene.addPixmap(QPixmap("./169.jpeg"))
-        A = QGraphicsView()
-        # m_rectItem =QGraphicsRectItem()
-        # picture = QPixmap()
-
-        # m_rectItem.setRect(0, 0, 80, 80)
-        # m_rectItem.setPen(pen)
-        # m_rectItem.setBrush(QBrush(QColor(255, 0, 255)))
-        # m_rectItem.setFlag(QGraphicsItem.ItemIsMovable)
-
-        A.setScene(scene)
-        A.show()
-        exec()
-
+        self.pixmap = numpy2pixmap(self.defect.lens.img.copy())
+        self.item.setPixmap(self.pixmap)
+        self.A.fitInView(0,0,1200,1200)
+        # self._adapt_bg(pixmap)
+        # self.scene.addPixmap(QPixmap(self.image))
+        self.rect_item.setRect(self.defect.xmin, self.defect.ymin,300,300)
+        self.rect_item.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
+        self.rect_item.setFlag(QGraphicsItem.ItemIsFocusable, True)
+        
+        self.rect_item.setBrush(QBrush(QColor(255, 0, 0)))
+        self.scene.addItem(self.rect_item) 
+        self.A.show()
 class DefectLayoutItem(QGraphicsLayoutItem):
     def __init__(self, group, parent=None) -> None:
         super().__init__(parent)
