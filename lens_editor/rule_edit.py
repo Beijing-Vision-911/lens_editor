@@ -1,3 +1,4 @@
+import shutil
 from PySide6.QtWidgets import (
     QGraphicsSimpleTextItem,
     QWidget,
@@ -7,15 +8,15 @@ from PySide6.QtWidgets import (
     QPushButton,
     QGraphicsWidget,
     QGraphicsLinearLayout,
+    QFileDialog
 )
 
 from PySide6.QtCore import Qt
 
-
 from .defect import DefectLayoutItem, DefectItem
 from .rule import Ruleset
 
-
+from pathlib import Path
 class FilePathItem(QGraphicsSimpleTextItem):
     def __init__(self, text, lens, parent=None):
         super().__init__(text, parent)
@@ -80,49 +81,93 @@ class RuleEditWindow(QWidget):
         self.init_rule_text()
 
     def init_rule_text(self):
-        k = 2.5
+        k = 1.5
+        k1202 = 1.3
         d = 2194
         d1 = 1329
         a = 1710
         default = f'''0101 x>{d1} x<={a} w>7*{k}
-0101 x>{d1} x<={a} w<=7*{k} -2 -3
+0101 x>{d1} x<={a} w<=7*{k} -2
+0101 x>{d1} x<={a} w<=7*{k} -3
 0101 x>{a} x<{d} w>12*{k}
-0101 x>{a} x<{d} w<=12*{k} -2 -3
+0101 x>{a} x<{d} w<=12*{k} -2
+0101 x>{a} x<{d} w<=12*{k} -3
 0102 x>{d1} x<{d}
 0103 x>{d1} x<=1960
-0104 x>{d1} x<{d} -2 -3
-1101 x>{d1} x<{d} -2 -3
-1102 x>{d1} x<{d} -1 -2 -3
+0104 x>{d1} x<{d} -2
+0104 x>{d1} x<{d} -3
+1101 x>{d1} x<{d} -2
+1101 x>{d1} x<{d} -3
+1102 x>{d1} x<{d} -0
+1102 x>{d1} x<{d} -1
+1102 x>{d1} x<{d} -2
+1102 x>{d1} x<{d} -3
+1102 x>{d1} x<{d} -4
 1102 x>{d1} x<{d} w>=7*{k}
-1103 x>{d1} x<{d} -2 -3
+1103 x>{d1} x<{d} -2
+1103 x>{d1} x<{d} -3
 1103 x>{d1} x<{d} w>7*{k}
 1104 x>{d1} x<{d} 
-1202 x>{d1} x<=1960 w>=9*{k}
-1202 x>1960 x<{d} w>=10*{k}
+1202 x>{d1} x<=1960 w>=9*{k1202}
+1202 x>1960 x<{d} w>=10*{k1202}
 1203 x>{d1} x<=1960
 1302 x>{d1} x<=1960 w>10*{k}
 1302 x>1960 x<{d} w>13*{k}
 1303 x>{d1} x<=1960
-1402 x>{d1} x<=1960 -1 -2 -3
-1403 x>{d1} x<=1960 -1 -2 -3
-1403 x>1960 x<{d} -2 -3
+1402 x>{d1} x<=1960 -0
+1402 x>{d1} x<=1960 -1
+1402 x>{d1} x<=1960 -2
+1402 x>{d1} x<=1960 -3
+1402 x>{d1} x<=1960 -4
+1403 x>{d1} x<=1960 -1
+1403 x>{d1} x<=1960 -2
+1403 x>{d1} x<=1960 -3
+1403 x>1960 x<{d} -2
+1403 x>1960 x<{d} -3
 1502 x>119 x<816
-1702 x>{d1} x<{d} -1 -2 -3 w>3*{k} h>3*{k}
+1702 x>{d1} x<{d} -0 W>3*{k} H>3*{k}
+1702 x>{d1} x<{d} -1 W>3*{k} H>3*{k}
+1702 x>{d1} x<{d} -2 W>3*{k} H>3*{k}
+1702 x>{d1} x<{d} -3 W>3*{k} H>3*{k}
+1702 x>{d1} x<{d} -4 W>3*{k} H>3*{k}
 2002 x>{d1} x<{d} 
-2102 x>{d1} x<{d} -1 -2 -3
-2103 x>{d1} x<{d} -1 -2 -3
-2611 x>119 x<1086 +1 +2
+2102 x>{d1} x<{d} -0
+2102 x>{d1} x<{d} -1
+2102 x>{d1} x<{d} -2
+2102 x>{d1} x<{d} -3
+2102 x>{d1} x<{d} -4
+2103 x>{d1} x<{d} -0
+2103 x>{d1} x<{d} -1
+2103 x>{d1} x<{d} -2
+2103 x>{d1} x<{d} -3
+2103 x>{d1} x<{d} -4
+2611 x>119 x<1086 +1
+2611 x>119 x<1086 +2
 2612 x>119 x<1086
-2613 x>119 x<1086 +1 +2
+2613 x>119 x<1086 +1
+2613 x>119 x<1086 +2
 3122 x<{d} 
 3102 x<{d} 
 3103 x<{d} 
 3202 x<=2122
-3501 x>119 x<1086 +2 +3
+3501 x>119 x<1086 +2
+3501 x>119 x<1086 +3
 3502 x>119 x<1086
-3632 x>119 x<1086 +1 +2 +3
-3633 x>119 x<1086 +1 +2 +3
-3602 x>119 x<=1075
+3632 x>119 x<1086 +0
+3632 x>119 x<1086 +1
+3632 x>119 x<1086 +2
+3632 x>119 x<1086 +3
+3632 x>119 x<1086 +4
+3633 x>119 x<1086 +0
+3633 x>119 x<1086 +1
+3633 x>119 x<1086 +2
+3633 x>119 x<1086 +3
+3633 x>119 x<1086 +4
+3602 x>119 +0 x<=1075
+3602 x>119 +1 x<=1075
+3602 x>119 +2 x<=1075
+3602 x>119 +3 x<=1075
+3602 x>119 +4 x<=1075
 4412 x>{d1} x<{d}
 4512 x>119 x<1086
 4612 x>119 x<1086'''
@@ -155,9 +200,45 @@ class RuleEditWindow(QWidget):
         g_layout = QGraphicsLinearLayout(Qt.Vertical)
         g_widget = QGraphicsWidget()
         g_widget.setLayout(g_layout)
+        a = 0
+        # file = open('/home/user/桌面/md/vad.txt','w')
+
+        
+        
+        # save_dir = '/home/user/桌面/vaa'
+        self.list = list()
+        self.list1 = list()
         for l in self.main_window.lens:
-            failed = [(d, msg) for d in l.right if (msg := ruleset(d)) is not None]
+            failed = [(d, msg) for d in l.defects if (msg := ruleset(d)) is not None]
+            na = [d.name for d in l.defects if (msg := ruleset(d)) is not None]
             if failed:
                 g_layout.addItem(LensWidget(l.xml_path, failed))
-
+                
+                a+=1
+                self.list.append(l.xml_path)
+                self.list.append(l.img_path)
+            else:
+                
+                self.list1.append(l.xml_path)
+                self.list1.append(l.img_path)               
+                # file.write(str(l.xml_path)+'\n')
+                # file.write(str(na)+'\n')
+        # print(a)
         self.main_window.scene.addItem(g_widget)
+    def convert_btn_clicked(self):
+        import os
+        import shutil
+        path: str = QFileDialog.getExistingDirectory(
+            self,"getExistingDirectory"
+        )
+        print(Path(path))
+        for l in self.list:
+            if not (dir := Path(path) / '不合格').exists():
+                dir.mkdir()
+            shutil.copy(l,dir)
+            shutil.copy(l,dir)
+        for i in self.list1:
+            if not (dir := Path(path) / '合格').exists():
+                dir.mkdir()
+            shutil.copy(i,dir)
+            shutil.copy(i,dir)

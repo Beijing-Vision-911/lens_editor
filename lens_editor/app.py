@@ -1,6 +1,7 @@
 from itertools import chain
 from pathlib import Path
 import sys
+from venv import create
 from PySide6.QtCore import QMutex, QThreadPool, Qt
 
 from PySide6.QtWidgets import (
@@ -20,6 +21,7 @@ from PySide6.QtWidgets import (
     QGraphicsScene,
     QGraphicsWidget,
     QInputDialog,
+    QLabel
 )
 
 from PySide6.QtGui import QPixmapCache, QShortcut, QKeySequence
@@ -40,6 +42,8 @@ from typing import List
 
 class MainWindow(QMainWindow):
     def __init__(self, initial_path=""):
+        
+
         super().__init__()
         widget = QWidget()
         main_layout = QVBoxLayout()
@@ -81,6 +85,10 @@ class MainWindow(QMainWindow):
         self.open_file.clicked.connect(self.btn_openfile)
         bottom_layout.addWidget(self.open_file)
 
+        self.convert_btn = QPushButton("Convert(c)")
+        
+        bottom_layout.addWidget(self.convert_btn)
+
         widget.setLayout(main_layout)
         self.setWindowTitle("Lens Editor")
         self.setGeometry(0, 0, 800, 600)
@@ -100,7 +108,7 @@ class MainWindow(QMainWindow):
         QShortcut(QKeySequence("s"), self, self.save_btn_clicked)
         QShortcut(QKeySequence("a"), self, self.mark_btn_clicked)
         QShortcut(QKeySequence("r"), self, self.rename_btn_clicked)
-
+        # QShortcut(QKeySequence("c"), self, self.convert_btn_clicked)
         self.search_slot = QuickSearchSlot()
 
         slot_apply = lambda i: self.filter_apply(self.search_slot.get_slot(i), True)
@@ -111,6 +119,7 @@ class MainWindow(QMainWindow):
 
     def rule_edit_btn_clicked(self):
         self.rule_window = RuleEditWindow(main_window=self)
+        self.convert_btn.clicked.connect(self.rule_window.convert_btn_clicked)
         self.rule_window.show()
 
     def rename_btn_clicked(self):
@@ -147,7 +156,9 @@ class MainWindow(QMainWindow):
             message += f"Unmarked {unmarked} items."
 
         self.status_bar.showMessage(message)
-
+  
+    
+        
     def filter_apply(self, query, search_bar_update=False):
         d_list = self.filter_parser.parse(query, self.defects)
         self.view_update(d_list)
@@ -174,7 +185,7 @@ class MainWindow(QMainWindow):
 
         self.lens = []
         self.total_file = len(parms)
-        self.processed_file = 0
+        self.processed_file = 0  
         for f, j in parms:
             w = Worker(Lens, f, j)
             w.signals.result.connect(self.worker_done)
@@ -183,6 +194,12 @@ class MainWindow(QMainWindow):
     def btn_openfile(self):
         file_path = QFileDialog.getExistingDirectory()
         self._load_files(file_path)
+   
+    
+        
+        
+        
+        
 
     def worker_done(self, lz):
         self.mutex.lock()
