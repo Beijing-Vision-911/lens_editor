@@ -2,7 +2,6 @@ import imghdr
 from lib2to3.pgen2.token import LESS, LESSEQUAL
 from operator import itemgetter
 from re import M
-from webbrowser import BackgroundBrowser
 import xml.etree.ElementTree as ET
 from PySide6.QtCore import Qt
 from PySide6 import QtCore, QtWidgets
@@ -156,7 +155,7 @@ class DefectEdit(QWidget,Lens,Defect):
         self.A = QGraphicsView()
         self.A.setScene(self.scene)
         self.A.resize(1200,1200)
-        self.rect_item = QtWidgets.QGraphicsRectItem()
+        
     def _minimap(self) -> QPixmap:
         minimap = Minimap(self.defect,self.defects,self.width())
         return minimap.draw(self.defect,self.defects) 
@@ -193,18 +192,62 @@ class DefectEdit(QWidget,Lens,Defect):
     #         self.width(), Qt.SmoothTransformation
         # )
     def edit(self):
+        d_img = self.defect.image
+        d_w, d_h = d_img.shape[:2]
+        r_w = 380
+        r_h = int(r_w * d_w / d_h)
+        detail_img = cv2.resize(d_img, (r_w, r_h))
+        self.image = numpy2pixmap(detail_img)
         self.pixmap = numpy2pixmap(self.defect.lens.img.copy())
         self.item.setPixmap(self.pixmap)
         self.A.fitInView(0,0,1200,1200)
+        self.image = self.image.scaled(self.size())
+
         # self._adapt_bg(pixmap)
         # self.scene.addPixmap(QPixmap(self.image))
-        self.rect_item.setRect(self.defect.xmin, self.defect.ymin,300,300)
+        self.rect_item = QtWidgets.QGraphicsRectItem()
+        self.rect_item.setRect(self.defect.xmin, self.defect.ymin,800,800)
         self.rect_item.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
-        self.rect_item.setFlag(QGraphicsItem.ItemIsFocusable, True)
-        
-        self.rect_item.setBrush(QBrush(QColor(255, 0, 0)))
+        self.rect_item.setBrush(QBrush(QPixmap(self.image)))
+        # self.rect_item.setFlag(QGraphicsItem.ItemIsFocusable, False)
         self.scene.addItem(self.rect_item) 
         self.A.show()
+        self.label = complex(self)
+        self.label.grabKeyboard()
+class complex(QLabel):
+    def __init__(self, defectedit, parent=None):
+        super().__init__(parent)
+        self.rect_item = defectedit.rect_item
+
+    def keyPressEvent(self, QKeyEvent): 
+        if QKeyEvent.modifiers()==Qt.ControlModifier:
+            return self.keyPressEvent2(QKeyEvent)
+        if QKeyEvent.key() == Qt.Key_Up : 
+            self.rect_item.moveBy(0,-30)
+        if QKeyEvent.key()== Qt.Key_Down:
+            self.rect_item.moveBy(0,30)
+        if QKeyEvent.key()== Qt.Key_Left:
+            self.rect_item.moveBy(-30,0)
+        if QKeyEvent.key()== Qt.Key_Right:
+            self.rect_item.moveBy(30,0)
+    def keyPressEvent2(self,QKeyEvent) -> None:
+        if(QKeyEvent.modifiers()==Qt.ControlModifier):
+            if(QKeyEvent.key()==Qt.Key_Up):
+                print("打印了ctrl+u")
+                self.rect_item.setFlag(QGraphicsItem.mapToScene(), True)
+                # self.maptoscene(rect_item)
+                # self.rect_item.scaled(self.rect_item.width()-10)
+            elif (QKeyEvent.key()==Qt.Key_J):
+                print("打印了ctrl+j")
+            elif (QKeyEvent.key()==Qt.Key_H):
+                print("打印了ctrl+h")
+            elif(QKeyEvent.key()==Qt.Key_K):
+                print("打印了ctrl+k")
+    # def maptoscene(self,rect_item):
+    #     new_item=QGraphicsItem()
+    #     new_item.mapToScene(rect_item,100.1,10.1)
+
+0
 class DefectLayoutItem(QGraphicsLayoutItem):
     def __init__(self, group, parent=None) -> None:
         super().__init__(parent)

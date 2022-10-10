@@ -8,6 +8,7 @@
 # from xml.etree.ElementPath import xpath_tokenizer
 from os import get_blocking
 from socket import SO_BINDTODEVICE
+from typing_extensions import Self
 import cv2
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap, QImage, QBrush, QColor
@@ -59,11 +60,19 @@ minimap = Minimap(defect)
 pixmap = minimap.get_pixmap()
 """
 
-def numpy2pixmap(np_img) -> QPixmap:
-    height, width, channel = np_img.shape
+def numpy2pixmap(np_img):
+    np_img = np.ascontiguousarray(np_img)
+    bytes_per_line = np_img.shape[1] * 3 if len(np_img.shape) == 3 else np_img.shape[1]
+    picture_format = (
+        QImage.Format_BGR888 if len(np_img.shape) == 3 else QImage.Format_Grayscale8
+    )
     qimg = QImage(
-        np_img.data, width, height, width * channel, QImage.Format_RGB888
-    ).rgbSwapped()
+        np_img.data,
+        np_img.shape[1],
+        np_img.shape[0],
+        bytes_per_line,
+        picture_format,
+    )
     return QPixmap(qimg)
     
 class Minimap():
