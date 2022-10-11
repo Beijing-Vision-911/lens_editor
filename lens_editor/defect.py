@@ -3,7 +3,7 @@ from lib2to3.pgen2.token import LESS, LESSEQUAL
 from operator import itemgetter
 from re import M
 import xml.etree.ElementTree as ET
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt,QPoint
 from PySide6 import QtCore, QtWidgets
 from PySide6.QtWidgets import (
     QGraphicsItemGroup,
@@ -198,7 +198,7 @@ class DefectEdit(QWidget,Lens,Defect):
         r_h = int(r_w * d_w / d_h)
         detail_img = cv2.resize(d_img, (r_w, r_h))
         self.image = numpy2pixmap(detail_img)
-        self.pixmap = numpy2pixmap(self.defect.lens.img.copy())
+        self.pixmap = numpy2pixmap(cv2.resize(self.defect.lens.img.copy(),(r_w*10,r_h*10)))
         self.item.setPixmap(self.pixmap)
         self.A.fitInView(0,0,1200,1200)
         self.image = self.image.scaled(self.size())
@@ -206,7 +206,7 @@ class DefectEdit(QWidget,Lens,Defect):
         # self._adapt_bg(pixmap)
         # self.scene.addPixmap(QPixmap(self.image))
         self.rect_item = QtWidgets.QGraphicsRectItem()
-        self.rect_item.setRect(self.defect.xmin, self.defect.ymin,800,800)
+        self.rect_item.setRect(self.defect.xmin, self.defect.ymin,400,400)
         self.rect_item.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
         self.rect_item.setBrush(QBrush(QPixmap(self.image)))
         # self.rect_item.setFlag(QGraphicsItem.ItemIsFocusable, False)
@@ -214,10 +214,20 @@ class DefectEdit(QWidget,Lens,Defect):
         self.A.show()
         self.label = complex(self)
         self.label.grabKeyboard()
-class complex(QLabel):
-    def __init__(self, defectedit, parent=None):
-        super().__init__(parent)
+        self.label.grabMouse() 
+class complex(QtWidgets.QLabel):
+    def __init__(self, defectedit,parent=None):
+        super(complex, self).__init__(parent)
         self.rect_item = defectedit.rect_item
+        self.singleOffset = QPoint(0, 0) 
+
+    def wheelEvent(self, event):
+        # angle=event.angleDelta / 8                                           # 返回QPoint对象，为滚轮转过的数值，单位为1/8度
+        # angleY=angle.y()  # 竖直滚过的距离
+        if event.delta() > 0:
+            print("鼠标滚轮上滚")  # 响应测试语句
+        else:                                                                  # 滚轮下滚
+            print("鼠标滚轮下滚")  # 响应测试语句
 
     def keyPressEvent(self, QKeyEvent): 
         if QKeyEvent.modifiers()==Qt.ControlModifier:
@@ -230,24 +240,38 @@ class complex(QLabel):
             self.rect_item.moveBy(-30,0)
         if QKeyEvent.key()== Qt.Key_Right:
             self.rect_item.moveBy(30,0)
+
     def keyPressEvent2(self,QKeyEvent) -> None:
+        p0 =QPoint(10.1,10.1)
         if(QKeyEvent.modifiers()==Qt.ControlModifier):
             if(QKeyEvent.key()==Qt.Key_Up):
                 print("打印了ctrl+u")
-                self.rect_item.setFlag(QGraphicsItem.mapToScene(), True)
-                # self.maptoscene(rect_item)
-                # self.rect_item.scaled(self.rect_item.width()-10)
             elif (QKeyEvent.key()==Qt.Key_J):
                 print("打印了ctrl+j")
             elif (QKeyEvent.key()==Qt.Key_H):
                 print("打印了ctrl+h")
             elif(QKeyEvent.key()==Qt.Key_K):
                 print("打印了ctrl+k")
-    # def maptoscene(self,rect_item):
-    #     new_item=QGraphicsItem()
-    #     new_item.mapToScene(rect_item,100.1,10.1)
 
-0
+    def mousePressEvent(self, event):
+        if event.buttons() == QtCore.Qt.LeftButton:                          
+            print("鼠标左键单击")  
+            self.isLeftPressed = True;                                                                     
+        elif event.buttons () == QtCore.Qt.RightButton:                      
+            print("鼠标右键单击")
+        elif event.buttons() == QtCore.Qt.LeftButton | QtCore.Qt.RightButton: 
+            print("鼠标左右键同时单击") 
+
+    def mouseMoveEvent(self, e):
+        print("移动了")
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.LeftButton:                            # 左键释放
+            self.isLeftPressed = False;  
+            print("鼠标左键松开")  
+        elif event.button() == Qt.RightButton:                                                                   
+            print("鼠标右键松开")  
+
 class DefectLayoutItem(QGraphicsLayoutItem):
     def __init__(self, group, parent=None) -> None:
         super().__init__(parent)
