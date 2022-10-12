@@ -1,10 +1,11 @@
 import imghdr
 from lib2to3.pgen2.token import LESS, LESSEQUAL
 from multiprocessing import Event
+from numbers import Complex
 from operator import itemgetter
 from platform import release
 from re import M
-import PySide6
+from PySide6 import QtGui
 from webbrowser import get
 import xml.etree.ElementTree as ET
 from PySide6.QtCore import Qt,QPoint,QRect
@@ -153,12 +154,9 @@ class DefectEdit(QWidget,Lens,Defect):
         layout.addWidget(label_height_field, 5, 1)
         layout.addWidget(self.test_button,6, 1)
         layout.addWidget(self.label_map, 7, 0, 1, 2) 
-        self.scene = QGraphicsScene()
-        self.item = QGraphicsPixmapItem()
-        self.scene.addItem(self.item)
-        self.A = QGraphicsView()
-        self.A.setScene(self.scene)
-        self.A.resize(1200,1200)
+    def edit(self):
+        self.Ss = complex(self.defect)
+        # self.Ss.show()
         
     def _minimap(self) -> QPixmap:
         minimap = Minimap(self.defect,self.defects,self.width())
@@ -195,7 +193,19 @@ class DefectEdit(QWidget,Lens,Defect):
     #     return numpy2pixmap(np_origin).scaledToWidth(
     #         self.width(), Qt.SmoothTransformation
         # )                             
-    def edit(self):
+   
+ 
+class complex(QtWidgets.QGraphicsView):
+    def __init__(self,defect,parent=None):
+        super(complex, self).__init__(parent)
+        self.scene1 = QGraphicsScene()
+        self.item = QGraphicsPixmapItem()
+        self.defect = defect
+        self.scene1.addItem(self.item)
+        self.setScene(self.scene1)
+        self.resize(1200,1200)
+    #     self.edit()
+    # def edit(self):
         d_img = self.defect.image
         d_w, d_h = d_img.shape[:2]
         r_w = 380
@@ -204,7 +214,7 @@ class DefectEdit(QWidget,Lens,Defect):
         self.image = numpy2pixmap(detail_img)
         self.pixmap1 = numpy2pixmap(cv2.resize(self.defect.lens.img.copy(),(r_w*10,r_h*10)))
         self.item.setPixmap(self.pixmap1)
-        self.A.fitInView(0,0,1200,1200)
+        self.fitInView(0,0,1200,1200)
         self.image = self.image.scaled(self.size())
 
         # self._adapt_bg(pixmap)
@@ -214,52 +224,33 @@ class DefectEdit(QWidget,Lens,Defect):
         self.rect_item.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
         self.rect_item.setBrush(QBrush(QPixmap(self.image)))
         # self.rect_item.setFlag(QGraphicsItem.ItemIsFocusable, False)
-        self.scene.addItem(self.rect_item) 
-        self.A.show()
-        self.show_message()
-        self.label = complex(self,self.pixmap1)
-        self.label.grabKeyboard()
-        self.label.grabMouse()
-    def show_message(self):
-        QMessageBox.information(self, "如果想退出鼠标点击", "请按鼠标左键+右键",
-                                QMessageBox.Yes)
-
-        
- 
-class complex(QLabel):
-    def __init__(self, defectedit,pixmap1,parent=None):
-        super(complex, self).__init__(parent)
-        self.label = QLabel()
-        self.rect_item = defectedit.rect_item
-        self.pixmap1 = pixmap1
-        self.singleOffset = QPoint(0, 0)
-        # self.scaledImg = self.pixmap1.scaled(self.size())
+        self.scene1.addItem(self.rect_item) 
+        self.show()
     def wheelEvent(self, event):
-#        if event.delta() > 0:                                                
-        # This function has been deprecated, use pixelDelta() or angleDelta() instead.
         angle=event.angleDelta() / 8                                           
         angleY=angle.y()                                                     
         if angleY > 0:                                                    
             print("鼠标中键上滚")  
-            self.scaledImg = self.pixmap1.scaled(self.scaledImg.width()+5,
-                                                   self.scaledImg.height()+5)
-            newWidth = event.x() - (self.scaledImg.width() * (event.x()-self.singleOffset.x())) \
-                        / (self.scaledImg.width()-5)
-            newHeight = event.y() - (self.scaledImg.height() * (event.y()-self.singleOffset.y())) \
-                        / (self.scaledImg.height()-5)
-            self.singleOffset = QPoint(newWidth, newHeight)                   
-            self.repaint()                                                    
+            
+            # self.scaledImg = self.pixmap1.scaled(self.scaledImg.width()+5,
+            #                                        self.scaledImg.height()+5)
+            # newWidth = event.x() - (self.scaledImg.width() * (event.x()-self.singleOffset.x())) \
+            #             / (self.scaledImg.width()-5)
+            # newHeight = event.y() - (self.scaledImg.height() * (event.y()-self.singleOffset.y())) \
+            #             / (self.scaledImg.height()-5)
+            # self.singleOffset = QPoint(newWidth, newHeight)                   
+            # self.repaint()                                                    
         else:                                                               
             print("鼠标中键下滚") 
-            self.scaledImg = self.pixmap1.scaled(self.scaledImg.width()-5,
-                                                   self.scaledImg.height()-5)
-            newWidth = event.x() - (self.scaledImg.width() * (event.x()-self.singleOffset.x())) \
-                        / (self.scaledImg.width()+5)
-            newHeight = event.y() - (self.scaledImg.height() * (event.y()-self.singleOffset.y())) \
-                        / (self.scaledImg.height()+5)
-            self.singleOffset = QPoint(newWidth, newHeight)                   
-            self.repaint()   
-                                                         
+            # self.scaledImg = self.pixmap1.scaled(self.scaledImg.width()-5,
+            #                                        self.scaledImg.height()-5)
+            # newWidth = event.x() - (self.scaledImg.width() * (event.x()-self.singleOffset.x())) \
+            #             / (self.scaledImg.width()+5)
+            # newHeight = event.y() - (self.scaledImg.height() * (event.y()-self.singleOffset.y())) \
+            #             / (self.scaledImg.height()+5)
+            # self.singleOffset = QPoint(newWidth, newHeight)                   
+            # self.repaint()   
+                                                   
 
     def keyPressEvent(self, QKeyEvent): 
         if QKeyEvent.modifiers()==Qt.ControlModifier:
@@ -300,8 +291,6 @@ class complex(QLabel):
             print("鼠标右键单击")
         elif event.buttons() == QtCore.Qt.LeftButton | QtCore.Qt.RightButton: 
             print("鼠标左右键同时单击") 
-            self.label.releaseKeyboard()
-            self.label.releaseMouse()
     def mouseMoveEvent(self,event):
         if self.isLeftPressed:                                               
             print("鼠标左键按下，移动鼠标") 
@@ -372,6 +361,7 @@ w: {self.defect.width}"""
     def mouseDoubleClickEvent(self, event) -> None:
         if event.button() == Qt.LeftButton:
             self.defect_edit = DefectEdit(self.defect)
+            DefectEdit(self.defect)
             self.defect_edit.show()
 
     def mark_toggle(self) -> bool:
