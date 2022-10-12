@@ -1,9 +1,14 @@
 import imghdr
 from lib2to3.pgen2.token import LESS, LESSEQUAL
+from multiprocessing import Event
 from operator import itemgetter
+from platform import release
 from re import M
+import PySide6
+from webbrowser import get
 import xml.etree.ElementTree as ET
-from PySide6.QtCore import Qt,QPoint
+from PySide6.QtCore import Qt,QPoint,QRect
+from PySide6.QtGui import QPainter
 from PySide6 import QtCore, QtWidgets
 from PySide6.QtWidgets import (
     QGraphicsItemGroup,
@@ -18,14 +23,13 @@ from PySide6.QtWidgets import (
     QGraphicsScene,
     QGraphicsView,
     QPushButton,
-    QGraphicsRectItem,
+    QMessageBox
 )
 from PySide6.QtGui import QPixmap, QImage, QBrush, QColor,QPen
 import cv2
 import lens_editor.pixmap as np
 from pathlib import Path
 from typing import List
-
 from .minimap import Minimap,numpy2pixmap
 
 class Lens:
@@ -190,7 +194,7 @@ class DefectEdit(QWidget,Lens,Defect):
     #     # return numpy2pixmap(np_origin).scaledToWidth(self.width(), Qt.SmoothTransformation)
     #     return numpy2pixmap(np_origin).scaledToWidth(
     #         self.width(), Qt.SmoothTransformation
-        # )
+        # )                             
     def edit(self):
         d_img = self.defect.image
         d_w, d_h = d_img.shape[:2]
@@ -198,8 +202,8 @@ class DefectEdit(QWidget,Lens,Defect):
         r_h = int(r_w * d_w / d_h)
         detail_img = cv2.resize(d_img, (r_w, r_h))
         self.image = numpy2pixmap(detail_img)
-        self.pixmap = numpy2pixmap(cv2.resize(self.defect.lens.img.copy(),(r_w*10,r_h*10)))
-        self.item.setPixmap(self.pixmap)
+        self.pixmap1 = numpy2pixmap(cv2.resize(self.defect.lens.img.copy(),(r_w*10,r_h*10)))
+        self.item.setPixmap(self.pixmap1)
         self.A.fitInView(0,0,1200,1200)
         self.image = self.image.scaled(self.size())
 
@@ -212,22 +216,50 @@ class DefectEdit(QWidget,Lens,Defect):
         # self.rect_item.setFlag(QGraphicsItem.ItemIsFocusable, False)
         self.scene.addItem(self.rect_item) 
         self.A.show()
-        self.label = complex(self)
+        self.show_message()
+        self.label = complex(self,self.pixmap1)
         self.label.grabKeyboard()
-        self.label.grabMouse() 
-class complex(QtWidgets.QLabel):
-    def __init__(self, defectedit,parent=None):
-        super(complex, self).__init__(parent)
-        self.rect_item = defectedit.rect_item
-        self.singleOffset = QPoint(0, 0) 
+        self.label.grabMouse()
+    def show_message(self):
+        QMessageBox.information(self, "如果想退出鼠标点击", "请按鼠标左键+右键",
+                                QMessageBox.Yes)
 
+        
+ 
+class complex(QLabel):
+    def __init__(self, defectedit,pixmap1,parent=None):
+        super(complex, self).__init__(parent)
+        self.label = QLabel()
+        self.rect_item = defectedit.rect_item
+        self.pixmap1 = pixmap1
+        self.singleOffset = QPoint(0, 0)
+        # self.scaledImg = self.pixmap1.scaled(self.size())
     def wheelEvent(self, event):
-        # angle=event.angleDelta / 8                                           # 返回QPoint对象，为滚轮转过的数值，单位为1/8度
-        # angleY=angle.y()  # 竖直滚过的距离
-        if event.delta() > 0:
-            print("鼠标滚轮上滚")  # 响应测试语句
-        else:                                                                  # 滚轮下滚
-            print("鼠标滚轮下滚")  # 响应测试语句
+#        if event.delta() > 0:                                                
+        # This function has been deprecated, use pixelDelta() or angleDelta() instead.
+        angle=event.angleDelta() / 8                                           
+        angleY=angle.y()                                                     
+        if angleY > 0:                                                    
+            print("鼠标中键上滚")  
+            self.scaledImg = self.pixmap1.scaled(self.scaledImg.width()+5,
+                                                   self.scaledImg.height()+5)
+            newWidth = event.x() - (self.scaledImg.width() * (event.x()-self.singleOffset.x())) \
+                        / (self.scaledImg.width()-5)
+            newHeight = event.y() - (self.scaledImg.height() * (event.y()-self.singleOffset.y())) \
+                        / (self.scaledImg.height()-5)
+            self.singleOffset = QPoint(newWidth, newHeight)                   
+            self.repaint()                                                    
+        else:                                                               
+            print("鼠标中键下滚") 
+            self.scaledImg = self.pixmap1.scaled(self.scaledImg.width()-5,
+                                                   self.scaledImg.height()-5)
+            newWidth = event.x() - (self.scaledImg.width() * (event.x()-self.singleOffset.x())) \
+                        / (self.scaledImg.width()+5)
+            newHeight = event.y() - (self.scaledImg.height() * (event.y()-self.singleOffset.y())) \
+                        / (self.scaledImg.height()+5)
+            self.singleOffset = QPoint(newWidth, newHeight)                   
+            self.repaint()   
+                                                         
 
     def keyPressEvent(self, QKeyEvent): 
         if QKeyEvent.modifiers()==Qt.ControlModifier:
@@ -240,9 +272,7 @@ class complex(QtWidgets.QLabel):
             self.rect_item.moveBy(-30,0)
         if QKeyEvent.key()== Qt.Key_Right:
             self.rect_item.moveBy(30,0)
-
     def keyPressEvent2(self,QKeyEvent) -> None:
-        p0 =QPoint(10.1,10.1)
         if(QKeyEvent.modifiers()==Qt.ControlModifier):
             if(QKeyEvent.key()==Qt.Key_Up):
                 print("打印了ctrl+u")
@@ -253,24 +283,40 @@ class complex(QtWidgets.QLabel):
             elif(QKeyEvent.key()==Qt.Key_K):
                 print("打印了ctrl+k")
 
+    def paintEvent(self,event):
+        self.imgPainter = QPainter()                                          
+        self.imgFramePainter = QPainter()                                      
+        self.imgPainter.begin(self)                                            
+        self.imgPainter.drawPixmap(self.singleOffset, self.scaledImg)         
+        self.imgFramePainter.setPen(QColor(168, 34, 3)) 
+        self.imgFramePainter.drawRect(10, 10, 480, 480)                        
+        self.imgPainter.end()                                                 
     def mousePressEvent(self, event):
         if event.buttons() == QtCore.Qt.LeftButton:                          
             print("鼠标左键单击")  
-            self.isLeftPressed = True;                                                                     
+            self.isLeftPressed = True;                                        
+            self.preMousePosition = event.pos()                                                                   
         elif event.buttons () == QtCore.Qt.RightButton:                      
             print("鼠标右键单击")
         elif event.buttons() == QtCore.Qt.LeftButton | QtCore.Qt.RightButton: 
             print("鼠标左右键同时单击") 
-
-    def mouseMoveEvent(self, e):
-        print("移动了")
-
+            self.label.releaseKeyboard()
+            self.label.releaseMouse()
+    def mouseMoveEvent(self,event):
+        if self.isLeftPressed:                                               
+            print("鼠标左键按下，移动鼠标") 
+            self.endMousePosition = event.pos() - self.preMousePosition        
+            self.singleOffset = self.singleOffset + self.endMousePosition      
+            self.preMousePosition = event.pos()                               
+            self.repaint()                                       
     def mouseReleaseEvent(self, event):
-        if event.button() == Qt.LeftButton:                            # 左键释放
-            self.isLeftPressed = False;  
+        if event.button() == Qt.LeftButton:                        
+            # self.isLeftPressed = False;  
             print("鼠标左键松开")  
         elif event.button() == Qt.RightButton:                                                                   
             print("鼠标右键松开")  
+            
+
 
 class DefectLayoutItem(QGraphicsLayoutItem):
     def __init__(self, group, parent=None) -> None:
