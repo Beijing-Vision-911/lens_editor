@@ -4,7 +4,6 @@ from multiprocessing import Event
 from numbers import Complex
 from operator import itemgetter
 from platform import release
-from re import M
 from webbrowser import get
 import xml.etree.ElementTree as ET
 from PySide6.QtCore import Qt,QPoint,QRect,QPointF
@@ -200,23 +199,21 @@ class complex(QGraphicsView):
         self.scene1 = QGraphicsScene()
         self.item = QGraphicsPixmapItem()
         self.defect = defect
-        self.pixmap1 = numpy2pixmap(self.defect.lens.img.copy())
-        self.scaledImg = self.pixmap1.scaled(self.size()) 
-        self.resize(1000,1000)
-        self.scalenum = 1
-        self.once = 1
+        self.resize(1300,1400)
         self.singleOffset = QPoint(0,0)
         self.isLeftPressed = bool(False)                                       # 图片被点住(鼠标左键)标志位
         self.isImgLabelArea = bool(True)
         self.edit()
     def edit(self):
-        self.item.setPixmap(self.pixmap1)
-        self.scene1.addItem(self.item)
-        self.setScene(self.scene1)
         d_img = self.defect.image
         d_w, d_h = d_img.shape[:2]
         r_w = 380
         r_h = int(r_w * d_w / d_h)
+        self.pixmap1 = numpy2pixmap(self.defect.lens.img.copy())    #,(r_w*15,r_h*15
+        self.scaledImg = self.pixmap1.scaled(self.size()) 
+        self.item.setPixmap(self.pixmap1)
+        self.scene1.addItem(self.item)
+        self.setScene(self.scene1)
         detail_img = cv2.resize(d_img, (r_w, r_h))
         self.image = numpy2pixmap(detail_img)
         self.fitInView(0,0,1200,1200)
@@ -225,7 +222,7 @@ class complex(QGraphicsView):
         # self._adapt_bg(pixmap)
         # self.scene.addPixmap(QPixmap(self.image))
         self.rect_item = QtWidgets.QGraphicsRectItem()
-        self.rect_item.setRect(self.defect.xmin, self.defect.ymin,400,400)
+        self.rect_item.setRect(self.defect.xmin, self.defect.ymin,20,20)
         self.rect_item.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
         self.rect_item.setBrush(QBrush(QPixmap(self.image)))
         self.rect_item.setFlag(QGraphicsItem.ItemIsFocusable, False)
@@ -234,23 +231,30 @@ class complex(QGraphicsView):
     def wheelEvent(self, event):
        if (event.angleDelta().y() > 0):
             self.scale(1.5, 1.5)
-            self.scalenum = self.scalenum * 1.5
-            self.once+=1
        elif (event.angleDelta().y() < 0):
             self.scale(1 / 1.5, 1 / 1.5)
-            self.scalenum = self.scalenum / 1.5 
                                                 
     def keyPressEvent(self, QKeyEvent): 
         if QKeyEvent.modifiers()==Qt.ControlModifier:
             return self.keyPressEvent2(QKeyEvent)
         if QKeyEvent.key() == Qt.Key_Up : 
             self.rect_item.moveBy(0,-30)
+            self.rect_item_sin_x = QPoint(0)
+            self.rect_item_sin_y = QPoint(-30)
         if QKeyEvent.key()== Qt.Key_Down:
             self.rect_item.moveBy(0,30)
+            self.rect_item_sin_x = QPoint(0)
+            self.rect_item_sin_y = QPoint(30)
         if QKeyEvent.key()== Qt.Key_Left:
             self.rect_item.moveBy(-30,0)
+            self.rect_item_sin_x = QPoint(-30)
+            self.rect_item_sin_y = QPoint(0)
         if QKeyEvent.key()== Qt.Key_Right:
             self.rect_item.moveBy(30,0)
+            self.rect_item_sin_x = QPoint(30)
+            self.rect_item_sin_y = QPoint(0)
+        # self.rect_item.x = self.rect_item_sin_x +self.rect_item.x
+        # self.rect_item.y = self.rect_item_sin_y +self.rect_item.y
     def keyPressEvent2(self,QKeyEvent) -> None:
         if(QKeyEvent.modifiers()==Qt.ControlModifier):
             if(QKeyEvent.key()==Qt.Key_Up):
@@ -272,6 +276,7 @@ class complex(QGraphicsView):
             self.singe = QPoint(self.new_label_x,self.new_label_y)
             self.singleOffset = self.singe +self.singleOffset
             self.item.setPos(self.singleOffset)
+            self.rect_item.setPos(self.singleOffset )
 
                   
     def mousePressEvent(self, event):
