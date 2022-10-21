@@ -17,6 +17,8 @@ from .defect import DefectLayoutItem, DefectItem
 from .rule import Ruleset
 
 from pathlib import Path
+from .config import Config
+
 class FilePathItem(QGraphicsSimpleTextItem):
     def __init__(self, text, lens, parent=None):
         super().__init__(text, parent)
@@ -79,14 +81,16 @@ class RuleEditWindow(QWidget):
         btn_layout.addWidget(self.fold_btn)
         self.fold_btn.clicked.connect(self.fold_toggle)
         self.init_rule_text()
-
+        self.config = Config()
+        self.config.setup('section','option',self.default)
+        # self.config.get('section','option',self.default)
     def init_rule_text(self):
         k = 1.5
         k1202 = 1.3
         d = 2194
         d1 = 1329
         a = 1710
-        default = f'''0101 x>{d1} x<={a} w>7*{k}
+        self.default = f'''0101 x>{d1} x<={a} w>7*{k}
 0101 x>{d1} x<={a} w<=7*{k} -2
 0101 x>{d1} x<={a} w<=7*{k} -3
 0101 x>{a} x<{d} w>12*{k}
@@ -184,8 +188,8 @@ class RuleEditWindow(QWidget):
         if hasattr(self.main_window, "rule_set_str"):
             self.text_edit.setText(self.main_window.rule_set_str)
             return
-        self.main_window.rule_set_str = default
-        self.text_edit.setText(default)
+        self.main_window.rule_set_str = self.default
+        self.text_edit.setText(self.default)
 
     def fold_toggle(self):
         for i in self.main_window.scene.items():
@@ -203,8 +207,7 @@ class RuleEditWindow(QWidget):
         a = 0
         # file = open('/home/user/桌面/md/vad.txt','w')
 
-        
-        
+
         # save_dir = '/home/user/桌面/vaa'
         self.list = list()
         self.list1 = list()

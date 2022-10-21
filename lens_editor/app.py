@@ -1,9 +1,13 @@
+from distutils.command.config import config
+import logging
+from argparse import ArgumentParser, Namespace
+import cv2
 from itertools import chain
 from pathlib import Path
 import sys
 from venv import create
 from PySide6.QtCore import QMutex, QThreadPool, Qt
-
+import PySide6.QtGui 
 from PySide6.QtWidgets import (
     QApplication,
     QCompleter,
@@ -21,17 +25,18 @@ from PySide6.QtWidgets import (
     QGraphicsScene,
     QGraphicsWidget,
     QInputDialog,
-    QLabel
+    QLabel,
+    QMessageBox
 )
 
 from PySide6.QtGui import QPixmapCache, QShortcut, QKeySequence
-
 from .view import View
 
 from .search import FilterParser, QuickSearchSlot
 
 from .thread import Worker
 
+from .config import root_config,Config
 from .defect import DefectItem, Lens
 from .rule_edit import RuleEditWindow
 
@@ -42,9 +47,8 @@ from typing import List
 
 class MainWindow(QMainWindow):
     def __init__(self, initial_path=""):
-        
-
         super().__init__()
+        
         widget = QWidget()
         main_layout = QVBoxLayout()
         self.scene = QGraphicsScene()
@@ -86,8 +90,11 @@ class MainWindow(QMainWindow):
         bottom_layout.addWidget(self.open_file)
 
         self.convert_btn = QPushButton("Convert(c)")
-        
         bottom_layout.addWidget(self.convert_btn)
+
+        self.nver_btn = QPushButton("Nver(c)")
+        bottom_layout.addWidget(self.nver_btn)
+        self.nver_btn.clicked.connect(self.savepixmap)
 
         widget.setLayout(main_layout)
         self.setWindowTitle("Lens Editor")
@@ -97,7 +104,7 @@ class MainWindow(QMainWindow):
         self.thread_pool = QThreadPool()
         self.mutex = QMutex()
         self.filter_parser = FilterParser()
-
+    
         self.shortcuts()
 
         if initial_path:
@@ -132,7 +139,6 @@ class MainWindow(QMainWindow):
         new_label, ok = QInputDialog.getText(self, "Rename", "New Label:")
         if not ok:
             return
-
         for i in items:
             i.rename(new_label)
 
@@ -156,8 +162,9 @@ class MainWindow(QMainWindow):
             message += f"Unmarked {unmarked} items."
 
         self.status_bar.showMessage(message)
-  
-    
+    def nver_edit(self):
+        editss = RuleEditWindow()
+        self.nver_btn.clicked.connect(self.rule_window.nver_btn_clicked)
         
     def filter_apply(self, query, search_bar_update=False):
         d_list = self.filter_parser.parse(query, self.defects)
@@ -194,12 +201,6 @@ class MainWindow(QMainWindow):
     def btn_openfile(self):
         file_path = QFileDialog.getExistingDirectory()
         self._load_files(file_path)
-   
-    
-        
-        
-        
-        
 
     def worker_done(self, lz):
         self.mutex.lock()
@@ -239,8 +240,28 @@ class MainWindow(QMainWindow):
         self.scene.addItem(g_widget)
         self.main_view.centerOn(self.scene.itemsBoundingRect().center())
 
+    def closeEvent(self, event: PySide6.QtGui.QCloseEvent) -> None:   
+        reply = QMessageBox.question(self,'提示','是否关闭所有窗口',
+        QMessageBox.Yes | QMessageBox.No,
+        QMessageBox.No
+        )
+        if reply == QMessageBox.Yes:
+            event.accept()
+            sys.exit(0)
+        else:
+            event.ignore()
+        # return super().closeEvent(event)
+    def savepixmap(self):
+        for d in self.defects:
+            self.name = d.name
+            self.image = d.image
+            self._name =d.lens.xml_path.stem
+            print(self.name)
+            cv2.imwrite(f"/home/user/桌面/a/{self._name}_{self.name}.jpeg",self.image)
+
 
 def main():
+    root_config("~/.tes")
     app = QApplication(sys.argv)
     initial_path = sys.argv[1] if len(sys.argv) > 1 else ""
     window = MainWindow(initial_path)

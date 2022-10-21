@@ -41,10 +41,3 @@ class Minimap:
             y = self.defect.ymin - self.margin - self.defect.height
         else:
             y = self.defect.ymin + self.margin
-
-            
-            
-            
-
-
-        
