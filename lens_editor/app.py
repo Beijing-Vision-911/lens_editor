@@ -1,8 +1,9 @@
 from itertools import chain
 from pathlib import Path
 import sys
+from unicodedata import name
 from PySide6.QtCore import QMutex, QThreadPool, Qt
-
+import cv2
 from PySide6.QtWidgets import (
     QApplication,
     QCompleter,
@@ -61,6 +62,10 @@ class MainWindow(QMainWindow):
         )
         bottom_layout.addWidget(self.search_bar)
 
+        self.savebutton = QPushButton("save")
+        self.savebutton.clicked.connect(self.save1)
+        bottom_layout.addWidget(self.savebutton)
+
         self.rule_edit_btn = QPushButton("Rule")
         self.rule_edit_btn.clicked.connect(self.rule_edit_btn_clicked)
         bottom_layout.addWidget(self.rule_edit_btn)
@@ -108,6 +113,15 @@ class MainWindow(QMainWindow):
         for i in map(str, range(1, 9)):
             QShortcut(i, self, partial(slot_apply, i))
             QShortcut(QKeySequence(f"Ctrl+{i}"), self, partial(slot_set, i))
+
+    def save1(self):
+        for d in self.defects:
+            self.name = d.name
+            self.image = d.image
+            self._name =d.lens.xml_path.stem
+            print(self.name)
+            cv2.imwrite(f"/home/user/pixmap.save/{self._name}_{self.name}.jpeg",self.image)
+                
 
     def rule_edit_btn_clicked(self):
         self.rule_window = RuleEditWindow(main_window=self)

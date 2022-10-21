@@ -1,3 +1,4 @@
+from curses import update_lines_cols
 import imghdr
 from lib2to3.pgen2.token import LESS, LESSEQUAL
 from multiprocessing import Event
@@ -92,7 +93,6 @@ class Defect:
         self.ymax = int(obj.find("bndbox/ymax").text)
         self.width = self.w = self.xmax - self.xmin
         self.height = self.h = self.ymax - self.ymin
-
     def _crop(self, orig_img):
         self.image = orig_img[self.ymin : self.ymax, self.xmin : self.xmax].copy()
 
@@ -104,7 +104,6 @@ class Defect:
         "return current mark state"
         self.mark = not self.mark
         return self.mark
-
 
 
 
@@ -203,28 +202,25 @@ class complex(QGraphicsView):
         self.singleOffset = QPoint(0,0)
         self.isLeftPressed = bool(False)                                       # 图片被点住(鼠标左键)标志位
         self.isImgLabelArea = bool(True)
-        self.edit()
-    def edit(self):
+        self.edit1()
+    def edit1(self):
+        self.rectitemsize_y = self.defect.xmax-self.defect.xmin
+        self.rectitemsize_x = self.defect.ymax-self.defect.ymin
+        self.xxx = 1
+        self.rect_key_y = 0
+        self.rect_key_x = 0
+        self.rect_key = QPoint(0,0)
         d_img = self.defect.image
         d_w, d_h = d_img.shape[:2]
-        r_w = 380
+        r_w = 100
         r_h = int(r_w * d_w / d_h)
-        self.pixmap1 = numpy2pixmap(self.defect.lens.img.copy())    #,(r_w*15,r_h*15
-        self.scaledImg = self.pixmap1.scaled(self.size()) 
+        self.pixmap1 = numpy2pixmap(self.defect.lens.img.copy()) #,(r_w*15,r_h*15
         self.item.setPixmap(self.pixmap1)
         self.scene1.addItem(self.item)
         self.setScene(self.scene1)
-        detail_img = cv2.resize(d_img, (r_w, r_h))
-        self.image = numpy2pixmap(detail_img)
-        self.fitInView(0,0,1200,1200)
-        self.image = self.image.scaled(self.size())
-
-        # self._adapt_bg(pixmap)
-        # self.scene.addPixmap(QPixmap(self.image))
+        self.fitInView(self.defect.xmax-50,self.defect.ymin-50,200,200)
         self.rect_item = QtWidgets.QGraphicsRectItem()
-        self.rect_item.setRect(self.defect.xmin, self.defect.ymin,20,20)
-        self.rect_item.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
-        self.rect_item.setBrush(QBrush(QPixmap(self.image)))
+        self.rect_item.setRect(self.defect.xmin+self.rect_key_x,self.defect.ymin+self.rect_key_y,self.defect.xmax-self.defect.xmin,self.defect.ymax-self.defect.ymin)
         self.rect_item.setFlag(QGraphicsItem.ItemIsFocusable, False)
         self.scene1.addItem(self.rect_item) 
         
@@ -234,38 +230,59 @@ class complex(QGraphicsView):
        elif (event.angleDelta().y() < 0):
             self.scale(1 / 1.5, 1 / 1.5)
                                                 
-    def keyPressEvent(self, QKeyEvent): 
-        if QKeyEvent.modifiers()==Qt.ControlModifier:
+    def keyPressEvent(self, QKeyEvent):
+        if QKeyEvent.key() == Qt.Key_S:                   #=s时，保存矩形坐标至xml
             return self.keyPressEvent2(QKeyEvent)
         if QKeyEvent.key() == Qt.Key_Up : 
-            self.rect_item.moveBy(0,-30)
-            self.rect_item_sin_x = QPoint(0)
-            self.rect_item_sin_y = QPoint(-30)
+            self.rect_item.moveBy(0,-5)
+            self.rect_key_y += -5
+            self.rect_key+= QPoint(0,-5)
+
         if QKeyEvent.key()== Qt.Key_Down:
-            self.rect_item.moveBy(0,30)
-            self.rect_item_sin_x = QPoint(0)
-            self.rect_item_sin_y = QPoint(30)
+            self.rect_item.moveBy(0,5)
+            self.rect_key+= QPoint(0,5)
+            self.rect_key_y += 5
+
         if QKeyEvent.key()== Qt.Key_Left:
-            self.rect_item.moveBy(-30,0)
-            self.rect_item_sin_x = QPoint(-30)
-            self.rect_item_sin_y = QPoint(0)
+            self.rect_item.moveBy(-5,0)
+            self.rect_key+= QPoint(-5,0)
+            self.rect_key_x += -5
+
         if QKeyEvent.key()== Qt.Key_Right:
-            self.rect_item.moveBy(30,0)
-            self.rect_item_sin_x = QPoint(30)
-            self.rect_item_sin_y = QPoint(0)
-        # self.rect_item.x = self.rect_item_sin_x +self.rect_item.x
-        # self.rect_item.y = self.rect_item_sin_y +self.rect_item.y
-    def keyPressEvent2(self,QKeyEvent) -> None:
-        if(QKeyEvent.modifiers()==Qt.ControlModifier):
-            if(QKeyEvent.key()==Qt.Key_Up):
-                print("打印了ctrl+u")
-            elif (QKeyEvent.key()==Qt.Key_J):
-                print("打印了ctrl+j")
-            elif (QKeyEvent.key()==Qt.Key_H):
-                print("打印了ctrl+h")
-            elif(QKeyEvent.key()==Qt.Key_K):
-                print("打印了ctrl+k")
+            self.rect_item.moveBy(5,0)
+            self.rect_key+= QPoint(5,0)
+            self.rect_key_x += 5
+
+    def keyPressEvent2(self, QKeyEvent):
+        # self.left=self.mapToScene(self.mapFromParent(QCursor.pos())).x()
+        # self.right=self.mapToScene(self.mapFromParent(QCursor.pos())).y()    #  坐标点
+        # print(self.defect.xmin+self.rect_key_x)
+        # print(self.defect.xmin+self.rectitemsize_x)
+        # print(self.defect.ymin+self.rect_key_y)
+        # print(self.defect.ymin+self.rectitemsize_y)
+        
+        xmin = self.defect._obj.find("bndbox/xmin")
+        xmin.text =f'{self.defect.xmin+self.rect_key_x}'
+
+        xmax = self.defect._obj.find("bndbox/xmax")
+        xmax.text = f'{self.defect.xmin+self.rectitemsize_x}'
+
+        ymin = self.defect._obj.find("bndbox/ymin")
+        ymin.text = f'{self.defect.ymin+self.rect_key_y}'
+
+        ymax = self.defect._obj.find("bndbox/ymax")
+        ymax.text = f'{self.defect.ymin+self.rectitemsize_y}'
+
+        self.defect.lens.tree.write(str(self.defect.lens.xml_path))
+        print("Successful")
+
+        
+        
+
     def mouseMoveEvent(self,event):
+        if event.modifiers()==Qt.ControlModifier:
+            return self.mouseMoveEvent2(event)
+
         if self.isLeftPressed:   
             self.label_x1 = QCursor.pos().x()
             self.label_y1 = QCursor.pos().y()
@@ -276,24 +293,34 @@ class complex(QGraphicsView):
             self.singe = QPoint(self.new_label_x,self.new_label_y)
             self.singleOffset = self.singe +self.singleOffset
             self.item.setPos(self.singleOffset)
-            self.rect_item.setPos(self.singleOffset )
+            self.rect_item.setPos(self.singleOffset+self.rect_key)
+    def mouseMoveEvent2(self, event):
+        self.rect_x1 = QCursor.pos().x()
+        self.rect_y1 = QCursor.pos().y()
+        self.new_rect_x1 = self.rect_x1-self.label_x            #计算出的新偏移量x
+        self.new_rect_y1 = self.rect_y1-self.label_y                 #计算出的新偏移量y    
+        self.rectitemsize_x= self.new_rect_x1
+        self.rectitemsize_y= self.new_rect_y1
+        self.rect_item.setRect(self.defect.xmin,self.defect.ymin,self.rectitemsize_x,self.rectitemsize_y)
+        self.rect_item.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
+        
 
                   
     def mousePressEvent(self, event):
         if event.buttons() == QtCore.Qt.LeftButton:                            # 左键按下
-            print("鼠标左键单击") 
             self.isLeftPressed = True;                                         # 左键按下(图片被点住),置Ture
             self.label_x=QCursor.pos().x()         #跟踪鼠标，这俩都是
-            self.label_y=QCursor.pos().y()                              
+            self.label_y=QCursor.pos().y()     
+            self.left=self.mapToScene(self.mapFromParent(QCursor.pos())).x()
+            self.right=self.mapToScene(self.mapFromParent(QCursor.pos())).y()                          
         elif event.buttons () == QtCore.Qt.RightButton:                        # 右键按下
-            print("鼠标右键单击")  # 响应测试语句
-
+            pass
     def mouseReleaseEvent(self, event):
-        if event.button() == Qt.LeftButton:                        
-            # self.isLeftPressed = False;  
-            print("鼠标左键松开")  
+        if event.button() == Qt.LeftButton:  
+            pass                      
         elif event.button() == Qt.RightButton:                                                                   
-            print("鼠标右键松开")  
+            pass
+
 
 class DefectLayoutItem(QGraphicsLayoutItem):
     def __init__(self, group, parent=None) -> None:
