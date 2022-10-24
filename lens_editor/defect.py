@@ -218,7 +218,7 @@ class complex(QGraphicsView):
         self.item.setPixmap(self.pixmap1)
         self.scene1.addItem(self.item)
         self.setScene(self.scene1)
-        self.fitInView(self.defect.xmax-50,self.defect.ymin-50,200,200)
+        self.fitInView(self.defect.xmax-25,self.defect.ymin-25,100,100)
         self.rect_item = QtWidgets.QGraphicsRectItem()
         self.rect_item.setRect(self.defect.xmin+self.rect_key_x,self.defect.ymin+self.rect_key_y,self.defect.xmax-self.defect.xmin,self.defect.ymax-self.defect.ymin)
         self.rect_item.setFlag(QGraphicsItem.ItemIsFocusable, False)
@@ -254,12 +254,6 @@ class complex(QGraphicsView):
             self.rect_key_x += 5
 
     def keyPressEvent2(self, QKeyEvent):
-        # self.left=self.mapToScene(self.mapFromParent(QCursor.pos())).x()
-        # self.right=self.mapToScene(self.mapFromParent(QCursor.pos())).y()    #  坐标点
-        # print(self.defect.xmin+self.rect_key_x)
-        # print(self.defect.xmin+self.rectitemsize_x)
-        # print(self.defect.ymin+self.rect_key_y)
-        # print(self.defect.ymin+self.rectitemsize_y)
         
         xmin = self.defect._obj.find("bndbox/xmin")
         xmin.text =f'{self.defect.xmin+self.rect_key_x}'
@@ -301,7 +295,7 @@ class complex(QGraphicsView):
         self.new_rect_y1 = self.rect_y1-self.label_y                 #计算出的新偏移量y    
         self.rectitemsize_x= self.new_rect_x1
         self.rectitemsize_y= self.new_rect_y1
-        self.rect_item.setRect(self.defect.xmin,self.defect.ymin,self.rectitemsize_x,self.rectitemsize_y)
+        self.rect_item.setRect(self.left-self.singleOffset.x(),self.right-self.singleOffset.y(),self.rectitemsize_x,self.rectitemsize_y)
         self.rect_item.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
         
 
