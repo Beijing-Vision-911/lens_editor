@@ -24,6 +24,12 @@ from PySide6.QtWidgets import (
 
 from PySide6.QtGui import QPixmapCache, QShortcut, QKeySequence
 
+import cv2
+from openpyxl import Workbook
+from PIL import Image
+
+from .rule import xymapping, linemapping
+
 from .view import View
 
 from .search import FilterParser, QuickSearchSlot
@@ -81,6 +87,13 @@ class MainWindow(QMainWindow):
         self.open_file.clicked.connect(self.btn_openfile)
         bottom_layout.addWidget(self.open_file)
 
+        self.count_bar = QLineEdit()
+        bottom_layout.addWidget(self.count_bar)
+
+        self.count_btn = QPushButton("Count(c)")
+        self.count_btn.clicked.connect(self.count_btn_clicked)
+        bottom_layout.addWidget(self.count_btn)
+
         widget.setLayout(main_layout)
         self.setWindowTitle("Lens Editor")
         self.setGeometry(0, 0, 800, 600)
@@ -100,6 +113,7 @@ class MainWindow(QMainWindow):
         QShortcut(QKeySequence("s"), self, self.save_btn_clicked)
         QShortcut(QKeySequence("a"), self, self.mark_btn_clicked)
         QShortcut(QKeySequence("r"), self, self.rename_btn_clicked)
+        QShortcut(QKeySequence("c"), self, self.count_btn_clicked)
 
         self.search_slot = QuickSearchSlot()
 
@@ -222,6 +236,85 @@ class MainWindow(QMainWindow):
         self.scene.addItem(g_widget)
         self.main_view.centerOn(self.scene.itemsBoundingRect().center())
 
+    def count_btn_clicked(self):
+        text = self.count_bar.text()
+        li = ['0','1','2','3','4']
+        nums = []
+        names = []
+        w = []
+        h = []
+        regions = []
+        recs = []
+        lnames = []
+        wb = Workbook()
+        ws = wb.active
+        ws.title = 'sheet'
+        ws.append(['编号','类名','宽度','高度','区域','是否可收','左通道对应'])
+        for d in self.defects:
+            if d.name == text:
+                receive = str(d.lens.xml_path)
+                r = receive.split("/")
+                if "unq" in r or "UNQ" in r:
+                    rec = "UNQ"
+                elif "h1" in r or "H1" in r:
+                    rec = "H1"
+                elif "h2" in r or "H2" in r:
+                    rec = "H2"
+                recs.append(rec)
+                img_number = d.lens.xml_path.stem
+                nums.append(img_number)
+                names.append(d.name)
+                w.append(d.width)
+                h.append(d.height)
+                x=d.xmin
+                if x >1329 and x < 1711:
+                    region = "A"
+                elif x > 1710 and x < 1961:
+                    region = "B"
+                elif x > 1960 and x < 2210:
+                    region = "C"
+                else:
+                    region = "D"
+                regions.append(region)
+                img = d.image
+                # cv2.imwrite(f"/hoem/user/llt/{d.name}",img)
+                ln = []
+                for i in li:
+                    if d.name[0] == '0' or d.name[0] == '1':
+                        a = self.left_check(d, i)
+                    else:
+                        a = self.line_check(d, i)
+                        if a:
+                            ln.append(a)
+                lnames.append(str(ln))
+        for i in range(len(nums)):
+            ws.cell(i+2, 1, nums[i])
+            ws.cell(i+2, 2, names[i])
+            ws.cell(i+2, 3, w[i])
+            ws.cell(i+2, 4, h[i])
+            ws.cell(i+2, 5, regions[i])
+            ws.cell(i+2, 6, recs[i])
+            ws.cell(i+2, 7, lnames[i])
+        wb.save(f"{text}.xlsx")
+        
+
+
+    def left_check(self, d, sexp):
+        fn = xymapping(d.x, d.y)
+        mappings = [d_.name for d_ in d.lens.left if fn(d_.x, d_.y)]
+        for name in mappings:
+            if name.endswith(sexp):
+                return name
+        return False
+        # return any([fn(d_.x, d_.y) for d_ in d.lens.left if d_.name.endswith(sexp)])
+    
+    def line_check(self, d, sexp):
+        fn = linemapping(d.x, d.y, d.x_, d.y_)
+        mappings = [d_.name for d_ in d.lens.left if fn(d_.x, d_.y, d_.x_, d_.y_)]
+        for name in mappings:
+            if name.endswith(sexp):
+                return name
+        return False
 
 def main():
     app = QApplication(sys.argv)

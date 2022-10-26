@@ -75,8 +75,8 @@ class Defect:
         self._name = obj.find("name").text
         self.xmin = self.x = int(obj.find("bndbox/xmin").text)
         self.ymin = self.y = int(obj.find("bndbox/ymin").text)
-        self.xmax = int(obj.find("bndbox/xmax").text)
-        self.ymax = int(obj.find("bndbox/ymax").text)
+        self.xmax = self.x_ =  int(obj.find("bndbox/xmax").text)
+        self.ymax = self.y_ = int(obj.find("bndbox/ymax").text)
         self.width = self.w = self.xmax - self.xmin
         self.height = self.h = self.ymax - self.ymin
 
