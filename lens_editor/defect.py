@@ -156,38 +156,6 @@ class DefectEdit(QWidget,Lens,Defect):
     def _minimap(self) -> QPixmap:
         minimap = Minimap(self.defect,self.defects,self.width())
         return minimap.draw(self.defect,self.defects) 
-    #     thick = 3
-    #     color = (0, 190, 246)
-    #     line_length = 50
-    #     # np_origin = cv2.imread(str(self.defect.lens.image_path))
-    #     np_origin = self.defect.lens.img.copy()
-    #     x, x_t = self.defect.xmax, self.defect.xmax + line_length
-    #     y, y_t = self.defect.ymin, self.defect.ymin - 50
-    #     # cv2.line(np_origin, (x, y), (x_t, y_t), color, 3)
-    #     cv2.circle(np_origin, (x, y), 25, color, thick)
-
-    #     d_img = self.defect.image
-    #     d_w, d_h = d_img.shape[:2]
-    #     r_w = 100
-    #     r_h = int(r_w * d_w / d_h)
-    #     detail_img = cv2.resize(d_img, (r_w, r_h))
-    #     tooltip = cv2.copyMakeBorder(
-    #         detail_img,
-    #         thick,
-    #         thick,
-    #         thick,
-    #         thick,
-    #         cv2.BORDER_CONSTANT | cv2.BORDER_ISOLATED,
-    #         value=color,
-    #     )
-    #     np_origin[
-    #         y_t : y_t + tooltip.shape[0],
-    #         x_t : x_t + tooltip.shape[1],
-    #     ] = tooltip
-    #     # return numpy2pixmap(np_origin).scaledToWidth(self.width(), Qt.SmoothTransformation)
-    #     return numpy2pixmap(np_origin).scaledToWidth(
-    #         self.width(), Qt.SmoothTransformation
-        # )                             
     def edit(self):
         self.Ss = complex(self.defect)
         self.Ss.show()
@@ -218,12 +186,85 @@ class complex(QGraphicsView):
         self.item.setPixmap(self.pixmap1)
         self.scene1.addItem(self.item)
         self.setScene(self.scene1)
-        self.fitInView(self.defect.xmax-25,self.defect.ymin-25,100,100)
+        self.fitInView(self.defect.xmax-50,self.defect.ymin-50,200,200)
         self.rect_item = QtWidgets.QGraphicsRectItem()
+        self.rect_item1 = QtWidgets.QGraphicsRectItem()
+        if self.defect.name[0] == "1"  or  self.defect.name[0] == "0":
+            self.xymapping(self.defect.xmin,self.defect.ymin)
+        else:
+            self.linemapping(self.defect.xmin,self.defect.ymin,self.defect.xmax,self.defect.ymax)
+        self.rect_item1.setRect(self.xmin,self.ymin,self.xmax-self.xmin,self.ymax-self.ymin)
         self.rect_item.setRect(self.defect.xmin+self.rect_key_x,self.defect.ymin+self.rect_key_y,self.defect.xmax-self.defect.xmin,self.defect.ymax-self.defect.ymin)
         self.rect_item.setFlag(QGraphicsItem.ItemIsFocusable, False)
         self.scene1.addItem(self.rect_item) 
-        
+        self.scene1.addItem(self.rect_item1)
+    
+    def xymapping(self,x, y) -> bool:
+    # 第一象限 > 第三  
+        if x >= 1200 and y <= 1200:
+            self.xmin = x - 1275
+            self.xmax = x - 1025
+            self.ymin = 925 + y
+            self.ymax = 1175 + y
+
+            
+        # 第四象限
+        if x >= 1200 and y > 1200:
+            self.xmin = x - 1275
+            self.xmax = x - 1025
+            self.ymax = y - 1035
+            self.ymin = y - 1285
+           
+            
+        # 第二象限
+        if x < 1200 and y <= 1200:
+            self.xmin = x + 1025
+            self.xmax = x + 1275
+            self.ymin = y + 1035
+            self.ymax = y + 1285
+
+            
+        # 第三象限
+        if x < 1200 and y > 1200:
+            self.xmin = x + 1025
+            self.xmax = x + 1275
+            self.ymin = y - 1175
+            self.ymax = y - 925
+
+            
+
+    def linemapping(self,xmin, ymin, xmax, ymax) -> bool:
+    # 第一象限 > 第三
+        if xmax >= 1200 and ymax <= 1200:
+            self.xmin = xmin - 1275
+            self.xmax = xmax - 1025
+            self.ymin = 925 + ymin
+            self.ymax = 1175 + ymax
+
+        # 第四象限
+        if xmax >= 1200 and ymax > 1200:
+            self.xmin = xmin - 1275
+            self.xmax = xmax - 1025
+            self.ymax = ymax - 1035
+            self.ymin = ymax - 1285
+  
+        # 第二象限
+        if xmax < 1200 and ymax <= 1200:
+            self.xmin = xmin + 1025
+            self.xmax = xmax + 1275
+            self.ymin = ymin + 1035
+            self.ymax = ymax + 1285
+
+        # 第三象限
+        if xmax < 1200 and ymax > 1200:
+            self.xmin = xmin + 1025
+            self.xmax = xmax + 1275
+            self.ymin = ymin - 1175
+            self.ymax = ymax - 925
+
+
+
+
     def wheelEvent(self, event):
        if (event.angleDelta().y() > 0):
             self.scale(1.5, 1.5)
@@ -233,6 +274,8 @@ class complex(QGraphicsView):
     def keyPressEvent(self, QKeyEvent):
         if QKeyEvent.key() == Qt.Key_S:                   #=s时，保存矩形坐标至xml
             return self.keyPressEvent2(QKeyEvent)
+        if QKeyEvent.key() == Qt.Key_B: 
+            return self.keyPressEvent3(QKeyEvent)
         if QKeyEvent.key() == Qt.Key_Up : 
             self.rect_item.moveBy(0,-5)
             self.rect_key_y += -5
@@ -270,13 +313,53 @@ class complex(QGraphicsView):
         self.defect.lens.tree.write(str(self.defect.lens.xml_path))
         print("Successful")
 
-        
-        
+    def keyPressEvent3(self,QKeyEvent):
+        xml_file = f'{self.defect.lens.xml_path}'
+        tree = ET.parse(xml_file)
+        root = tree.getroot()
+        sub1 =ET.SubElement(root,"object")
+        SubElement_country0 = ET.SubElement (sub1,'name') 
+        SubElement_country0.text = "1111"
+        SubElement_disabled = ET.SubElement(sub1,'pose')
+        SubElement_disabled.text = 'Unspecified'
 
+        SubElement_disabled = ET.SubElement(sub1,'truncated')
+        SubElement_disabled.text = '0'
+
+        SubElement_disabled = ET.SubElement(sub1,'difficult')
+        SubElement_disabled.text = '0'
+        SubElement_country0_r = ET.SubElement(sub1,'bndbox')
+        SubElement_country0_year = ET.SubElement(SubElement_country0_r,'xmin')
+        SubElement_country0_year.text = f'{self.xmin}'
+        SubElement_country0_y = ET.SubElement(SubElement_country0_r,'ymin')
+        SubElement_country0_y.text = f'{self.ymin}'
+        SubElement_country0_ye = ET.SubElement(SubElement_country0_r,'xmax')
+        SubElement_country0_ye.text = f'{self.xmax}'
+        SubElement_country0_yea = ET.SubElement(SubElement_country0_r,'ymax')
+        SubElement_country0_yea.text = f'{self.ymax}'
+        self.prettyXml(root, '    ', '\n')           
+
+        tree.write(xml_file)                  
+        print("Successful")
+
+    def prettyXml(self,element, indent, newline, level = 0): 
+        if element:  
+            if element.text == None or element.text.isspace():
+                element.text = newline + indent * (level + 1)
+            else:
+                element.text = newline + indent * (level + 1) + element.text.strip() + newline + indent * (level + 1)
+
+        temp = list(element) 
+        for subelement in temp:
+            if temp.index(subelement) < (len(temp) - 1): 
+                subelement.tail = newline + indent * (level + 1)
+            else: 
+                subelement.tail = newline + indent * level
+            self.prettyXml(subelement, indent, newline, level = level + 1) 
+        
     def mouseMoveEvent(self,event):
         if event.modifiers()==Qt.ControlModifier:
             return self.mouseMoveEvent2(event)
-
         if self.isLeftPressed:   
             self.label_x1 = QCursor.pos().x()
             self.label_y1 = QCursor.pos().y()
@@ -288,26 +371,26 @@ class complex(QGraphicsView):
             self.singleOffset = self.singe +self.singleOffset
             self.item.setPos(self.singleOffset)
             self.rect_item.setPos(self.singleOffset+self.rect_key)
+            self.rect_item1.setPos(self.singleOffset)
     def mouseMoveEvent2(self, event):
         self.rect_x1 = QCursor.pos().x()
         self.rect_y1 = QCursor.pos().y()
-        self.new_rect_x1 = self.rect_x1-self.label_x            #计算出的新偏移量x
-        self.new_rect_y1 = self.rect_y1-self.label_y                 #计算出的新偏移量y    
+        self.new_rect_x1 = self.rect_x1-self.label_x          
+        self.new_rect_y1 = self.rect_y1-self.label_y                   
         self.rectitemsize_x= self.new_rect_x1
         self.rectitemsize_y= self.new_rect_y1
         self.rect_item.setRect(self.left-self.singleOffset.x(),self.right-self.singleOffset.y(),self.rectitemsize_x,self.rectitemsize_y)
         self.rect_item.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
-        
 
                   
     def mousePressEvent(self, event):
-        if event.buttons() == QtCore.Qt.LeftButton:                            # 左键按下
-            self.isLeftPressed = True;                                         # 左键按下(图片被点住),置Ture
-            self.label_x=QCursor.pos().x()         #跟踪鼠标，这俩都是
+        if event.buttons() == QtCore.Qt.LeftButton:                 
+            self.isLeftPressed = True;                      
+            self.label_x=QCursor.pos().x()      
             self.label_y=QCursor.pos().y()     
             self.left=self.mapToScene(self.mapFromParent(QCursor.pos())).x()
             self.right=self.mapToScene(self.mapFromParent(QCursor.pos())).y()                          
-        elif event.buttons () == QtCore.Qt.RightButton:                        # 右键按下
+        elif event.buttons () == QtCore.Qt.RightButton:                   
             pass
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.LeftButton:  
