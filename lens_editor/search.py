@@ -1,5 +1,6 @@
-from .defect import Defect
 from typing import List
+
+from .defect import Defect
 
 
 class FilterParser:

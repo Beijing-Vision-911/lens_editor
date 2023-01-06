@@ -1,6 +1,5 @@
 from PySide6.QtWidgets import QGraphicsView
-from PySide6.QtGui import QPainter, QSurfaceFormat
-from PySide6.QtOpenGLWidgets import QOpenGLWidget
+from PySide6.QtGui import QPainter
 from PySide6.QtCore import Qt
 
 
@@ -20,4 +19,3 @@ class View(QGraphicsView):
         # format.setSamples(1)
         # gl.setFormat(format)
         # self.setViewport(gl)
-        

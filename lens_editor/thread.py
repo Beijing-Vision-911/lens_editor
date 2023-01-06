@@ -21,6 +21,6 @@ class Worker(QRunnable):
         except:
             pass
         else:
-            self.signals.result.emit(result) 
+            self.signals.result.emit(result)
         finally:
-            self.signals.finished.emit()  
+            self.signals.finished.emit()
