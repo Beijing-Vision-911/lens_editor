@@ -165,7 +165,7 @@ class complex(QGraphicsView):
         d_w, d_h = d_img.shape[:2]
         r_w = 100
         r_h = int(r_w * d_w / d_h)
-        self.pixmap1 = numpy2pixmap(self.defect.lens.img.copy())  # ,(r_w*15,r_h*15
+        self.pixmap1 = numpy2pixmap(self.defect.lens.img.copy())
         self.item.setPixmap(self.pixmap1)
         self.scene1.addItem(self.item)
         self.setScene(self.scene1)
