@@ -1,41 +1,25 @@
+import sys
+from functools import partial
 from itertools import chain
 from pathlib import Path
-import sys
-from PySide6.QtCore import QMutex, QThreadPool, Qt
 
-from PySide6.QtWidgets import (
-    QApplication,
-    QCompleter,
-    QFileDialog,
-    QGraphicsGridLayout,
-    QGraphicsWidget,
-    QHBoxLayout,
-    QLineEdit,
-    QMainWindow,
-    QPushButton,
-    QStatusBar,
-    QVBoxLayout,
-    QWidget,
-    QGraphicsView,
-    QGraphicsScene,
-    QGraphicsWidget,
-    QInputDialog,
-)
+from openpyxl import Workbook
+from PySide6.QtCore import QMutex, QThreadPool
+from PySide6.QtGui import QKeySequence, QPixmapCache, QShortcut
+from PySide6.QtWidgets import (QApplication, QCompleter, QFileDialog,
+                               QGraphicsGridLayout, QGraphicsScene,
+                               QGraphicsWidget, QHBoxLayout,
+                               QInputDialog, QLineEdit, QMainWindow,
+                               QMessageBox, QPushButton, QStatusBar,
+                               QVBoxLayout, QWidget)
 
-from PySide6.QtGui import QPixmapCache, QShortcut, QKeySequence
-
-from .view import View
-
-from .search import FilterParser, QuickSearchSlot
-
-from .thread import Worker
-
+from .config import root_config
 from .defect import DefectItem, Lens
+from .rule import linemapping, xymapping
 from .rule_edit import RuleEditWindow
-
-from functools import partial
-
-from typing import List
+from .search import FilterParser, QuickSearchSlot
+from .thread import Worker
+from .view import View
 
 
 class MainWindow(QMainWindow):
@@ -81,6 +65,16 @@ class MainWindow(QMainWindow):
         self.open_file.clicked.connect(self.btn_openfile)
         bottom_layout.addWidget(self.open_file)
 
+        self.count_bar = QLineEdit()
+        bottom_layout.addWidget(self.count_bar)
+
+        self.count_btn = QPushButton("Count(c)")
+        self.count_btn.clicked.connect(self.count_btn_clicked)
+        bottom_layout.addWidget(self.count_btn)
+
+        self.export_btn = QPushButton("Export")
+        bottom_layout.addWidget(self.export_btn)
+
         widget.setLayout(main_layout)
         self.setWindowTitle("Lens Editor")
         self.setGeometry(0, 0, 800, 600)
@@ -100,6 +94,7 @@ class MainWindow(QMainWindow):
         QShortcut(QKeySequence("s"), self, self.save_btn_clicked)
         QShortcut(QKeySequence("a"), self, self.mark_btn_clicked)
         QShortcut(QKeySequence("r"), self, self.rename_btn_clicked)
+        QShortcut(QKeySequence("c"), self, self.count_btn_clicked)
 
         self.search_slot = QuickSearchSlot()
 
@@ -111,6 +106,7 @@ class MainWindow(QMainWindow):
 
     def rule_edit_btn_clicked(self):
         self.rule_window = RuleEditWindow(main_window=self)
+        self.export_btn.clicked.connect(self.rule_window.export_btn_clicked)
         self.rule_window.show()
 
     def rename_btn_clicked(self):
@@ -167,6 +163,8 @@ class MainWindow(QMainWindow):
                 jpeg_file := xml_file.parents[1] / "img" / f"{xml_file.stem}.jpeg"
             ).is_file():
                 return jpeg_file
+            if (jpeg_file := xml_file.with_suffix(".jpg")).is_file():
+                return jpeg_file
             print(f"Cannot find jpeg for {xml_file}")
             return None
 
@@ -222,8 +220,96 @@ class MainWindow(QMainWindow):
         self.scene.addItem(g_widget)
         self.main_view.centerOn(self.scene.itemsBoundingRect().center())
 
+    def count_btn_clicked(self):
+        text = self.count_bar.text()
+        li = ["0", "1", "2", "3", "4"]
+        nums = []
+        names = []
+        w = []
+        h = []
+        regions = []
+        recs = []
+        lnames = []
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "sheet"
+        ws.append(["编号", "类名", "宽度", "高度", "区域", "是否可收", "左通道对应"])
+        for d in self.defects:
+            if d.name == text:
+                receive = str(d.lens.xml_path)
+                r = receive.split("/")
+                if "unq" in r or "UNQ" in r:
+                    rec = "UNQ"
+                elif "h1" in r or "H1" in r:
+                    rec = "H1"
+                elif "h2" in r or "H2" in r:
+                    rec = "H2"
+                else:
+                    rec = ""
+                recs.append(rec)
+                img_number = d.lens.xml_path.stem
+                nums.append(img_number)
+                names.append(d.name)
+                w.append(d.width)
+                h.append(d.height)
+                x = d.xmin
+                if x > 1329 and x < 1711:
+                    region = "A"
+                elif x > 1710 and x < 1961:
+                    region = "B"
+                elif x > 1960 and x < 2210:
+                    region = "C"
+                else:
+                    region = "D"
+                regions.append(region)
+                ln = []
+                for i in li:
+                    if d.name[0] == "0" or d.name[0] == "1":
+                        a = self.left_check(d, i)
+                    else:
+                        a = self.line_check(d, i)
+                        if a:
+                            ln.append(a)
+                lnames.append(str(ln))
+        for i in range(len(nums)):
+            ws.cell(i + 2, 1, nums[i])
+            ws.cell(i + 2, 2, names[i])
+            ws.cell(i + 2, 3, w[i])
+            ws.cell(i + 2, 4, h[i])
+            ws.cell(i + 2, 5, regions[i])
+            ws.cell(i + 2, 6, recs[i])
+            ws.cell(i + 2, 7, lnames[i])
+        wb.save(f"{text}.xlsx")
+
+    def left_check(self, d, sexp):
+        fn = xymapping(d.x, d.y)
+        mappings = [d_.name for d_ in d.lens.left if fn(d_.x, d_.y)]
+        for name in mappings:
+            if name.endswith(sexp):
+                return name
+        return False
+
+    def line_check(self, d, sexp):
+        fn = linemapping(d.x, d.y, d.x_, d.y_)
+        mappings = [d_.name for d_ in d.lens.left if fn(d_.x, d_.y, d_.x_, d_.y_)]
+        for name in mappings:
+            if name.endswith(sexp):
+                return name
+        return False
+
+    def closeEvent(self, event) -> None:
+        reply = QMessageBox.question(
+            self, "提示", "是否关闭所有窗口", QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+        )
+        if reply == QMessageBox.Yes:
+            event.accept()
+            sys.exit(0)
+        else:
+            event.ignore()
+
 
 def main():
+    root_config("~/.lens_editor")
     app = QApplication(sys.argv)
     initial_path = sys.argv[1] if len(sys.argv) > 1 else ""
     window = MainWindow(initial_path)
