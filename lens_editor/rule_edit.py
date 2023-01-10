@@ -1,3 +1,4 @@
+from asyncio.log import logger
 import shutil
 from pathlib import Path
 
@@ -10,6 +11,16 @@ from PySide6.QtWidgets import (QFileDialog, QGraphicsLinearLayout,
 from .config import Config
 from .defect import DefectItem, DefectLayoutItem
 from .rule import Ruleset
+
+import logging
+import sys
+
+
+
+level = logging.ERROR if sys.argv[-1] != "-d" else logging.INFO
+logging.basicConfig(level=level, format="%(levelname)s:%(message)s")
+logger = logging.getLogger(__name__)
+
 
 
 class FilePathItem(QGraphicsSimpleTextItem):
@@ -263,8 +274,8 @@ class RuleEditWindow(QWidget):
                 a += 1
             else:
                 good.append(l)
-        print("不合格==", a)
-        print(sorted(li))
+        logger.info(f"不合格=={a}")
+        logger.info(sorted(li))
         b = 0
         for g in good:
             un_failed = [
@@ -275,14 +286,14 @@ class RuleEditWindow(QWidget):
                 b += 1
             else:
                 helist.append(int(g.xml_path.stem))
-        print("不确定==", b)
-        print("合格==", len(helist))
-        print(sorted(helist))
+        logger.info(f"不确定=={b}")
+        logger.info(f"合格=={len(helist)}")
+        logger.info(sorted(helist))
         self.main_window.scene.addItem(g_widget)
 
     def export_btn_clicked(self):
         path: str = QFileDialog.getExistingDirectory(self, "getExistingDirectory")
-        print(Path(path))
+        logger.info(Path(path))
         for l in self.list:
             if not (dir := Path(path) / "不合格").exists():
                 dir.mkdir()

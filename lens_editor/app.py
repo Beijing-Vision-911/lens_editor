@@ -1,3 +1,4 @@
+from asyncio.log import logger
 import sys
 from functools import partial
 from itertools import chain
@@ -20,6 +21,12 @@ from .rule_edit import RuleEditWindow
 from .search import FilterParser, QuickSearchSlot
 from .thread import Worker
 from .view import View
+import logging
+
+
+level = logging.ERROR if sys.argv[-1] != "-d" else logging.INFO
+logging.basicConfig(level=level, format="%(levelname)s:%(message)s")
+logger = logging.getLogger(__name__)
 
 
 class MainWindow(QMainWindow):
@@ -165,7 +172,7 @@ class MainWindow(QMainWindow):
                 return jpeg_file
             if (jpeg_file := xml_file.with_suffix(".jpg")).is_file():
                 return jpeg_file
-            print(f"Cannot find jpeg for {xml_file}")
+            logger.error(f"Cannot find jpeg for {xml_file}")
             return None
 
         parms = [(x, find_jpeg(x)) for x in xml_files if find_jpeg(x)]
@@ -181,6 +188,7 @@ class MainWindow(QMainWindow):
     def btn_openfile(self):
         file_path = QFileDialog.getExistingDirectory()
         self._load_files(file_path)
+
 
     def worker_done(self, lz):
         self.mutex.lock()
