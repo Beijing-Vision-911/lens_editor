@@ -1,4 +1,3 @@
-from asyncio.log import logger
 import xml.etree.ElementTree as ET
 from pathlib import Path
 

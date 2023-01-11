@@ -1,4 +1,3 @@
-from asyncio.log import logger
 import sys
 from functools import partial
 from itertools import chain
