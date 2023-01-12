@@ -2,6 +2,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import cv2
+import sys
 from PySide6 import QtCore, QtWidgets
 from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QBrush, QColor, QCursor, QPixmap
@@ -12,6 +13,13 @@ from PySide6.QtWidgets import (QGraphicsItem, QGraphicsItemGroup,
                                QToolTip, QWidget)
 
 from .minimap import Minimap, numpy2pixmap
+
+import logging
+
+level = logging.ERROR if sys.argv[-1] != "-d" else logging.INFO
+logging.basicConfig(level=level, format="%(levelname)s:%(message)s")
+logger = logging.getLogger(__name__)
+
 
 
 class Lens:
@@ -295,7 +303,7 @@ class complex(QGraphicsView):
         ymax.text = f"{self.defect.ymin+self.rectitemsize_y}"
 
         self.defect.lens.tree.write(str(self.defect.lens.xml_path))
-        print("Successful")
+        logger.info("Successful")
 
     def keyPressEvent3(self, QKeyEvent):
         xml_file = f"{self.defect.lens.xml_path}"
@@ -324,7 +332,7 @@ class complex(QGraphicsView):
         self.prettyXml(root, "    ", "\n")
 
         tree.write(xml_file)
-        print("Successful")
+        logger.info("Successful")
 
     def prettyXml(self, element, indent, newline, level=0):
         if element:
