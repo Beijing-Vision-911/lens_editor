@@ -1,10 +1,10 @@
-from typing import List
+from typing import Any, List
 
 from .defect import Defect
 
 
 class FilterParser:
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
     def parse(self, filter_str: str, d_list: List[Defect]) -> List[Defect]:
@@ -37,14 +37,14 @@ class FilterParser:
 
 
 class QuickSearchSlot:
-    def __init__(self):
+    def __init__(self) -> None:
         self._default_slot = {
             "1": "-mark",
             "2": "mark",
             "3": "mod",
         }
 
-    def set_slot(self, slot: str, filter_str: str):
+    def set_slot(self, slot: str, filter_str: str) -> None:
         self._default_slot[slot] = filter_str
 
     def get_slot(self, slot: str) -> str:

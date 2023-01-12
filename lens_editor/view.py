@@ -1,10 +1,11 @@
+from typing import Any
 from PySide6.QtWidgets import QGraphicsView
 from PySide6.QtGui import QPainter
 from PySide6.QtCore import Qt
 
 
 class View(QGraphicsView):
-    def __init__(self, scene, parent=None):
+    def __init__(self, scene:Any, parent=None) -> None:
         super().__init__(scene, parent)
         self.setRenderHint(QPainter.Antialiasing, False)
         self.setDragMode(QGraphicsView.RubberBandDrag)

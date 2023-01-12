@@ -1,5 +1,9 @@
 import shutil
+import logging
+import sys
+
 from pathlib import Path
+from typing import Any, List
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QFileDialog, QGraphicsLinearLayout,
@@ -8,12 +12,9 @@ from PySide6.QtWidgets import (QFileDialog, QGraphicsLinearLayout,
                                QVBoxLayout, QWidget)
 
 from .config import Config
-from .defect import DefectItem, DefectLayoutItem
+from .defect import Defect, DefectItem, DefectLayoutItem
 from .rule import Ruleset
-
-import logging
-import sys
-
+from .app import MainWindow
 
 
 level = logging.ERROR if sys.argv[-1] != "-d" else logging.INFO
@@ -23,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 class FilePathItem(QGraphicsSimpleTextItem):
-    def __init__(self, text, lens, color, parent=None):
+    def __init__(self, text:str, lens:Any, color:Qt.GlobalColor, parent=None) -> None:
         super().__init__(text, parent)
         self.setBrush(color)
         self.lens = lens
@@ -36,23 +37,23 @@ class FilePathItem(QGraphicsSimpleTextItem):
 
 
 class LensWidget(QGraphicsWidget):
-    def __init__(self, xml_path, failed, color, parent=None):
+    def __init__(self, xml_path:List, failed:List, color:Qt.GlobalColor, parent=None) -> None:
         super().__init__(parent)
         layout = QGraphicsLinearLayout(Qt.Vertical)
         layout.setSpacing(20)
         self.setLayout(layout)
-        self.path = FilePathItem(str(xml_path), self, color)
+        self.path:FilePathItem = FilePathItem(str(xml_path), self, color)
         layout_item_path = DefectLayoutItem(self.path)
         layout.addItem(layout_item_path)
         self.defects_layout = QGraphicsLinearLayout(Qt.Horizontal)
         layout.addItem(self.defects_layout)
-        self.defects = [DefectItem(d, msg=msg) for d, msg in failed]
+        self.defects[DefectItem] = [DefectItem(d, msg=msg) for d, msg in failed]
         self.toggle = False
         for d in self.defects:
             d_layout_item = d.get_layout_item()
             self.defects_layout.addItem(d_layout_item)
 
-    def toggle_visible(self):
+    def toggle_visible(self) -> None:
         self.toggle = not self.toggle
         if self.toggle:
             for d in self.defects:
@@ -65,7 +66,7 @@ class LensWidget(QGraphicsWidget):
 
 
 class RuleEditWindow(QWidget):
-    def __init__(self, main_window, parent=None):
+    def __init__(self, main_window:MainWindow, parent=None) -> None:
         super().__init__(parent)
         self.main_window = main_window
         layout = QVBoxLayout()
@@ -86,10 +87,10 @@ class RuleEditWindow(QWidget):
         self.add_btn = QPushButton("Uncretain")
         self.add_btn.clicked.connect(self.add_uncretain)
         btn_layout.addWidget(self.add_btn)
-        self.cfg = Config()
+        self.cfg = Config()  # type: ignore
         self.init_rule_text()
 
-    def init_rule_text(self):
+    def init_rule_text(self) -> None:
         d = 2194
         b = 1960
         d1 = 1329
@@ -238,20 +239,20 @@ class RuleEditWindow(QWidget):
         self.text_edit.setText(default_rule)
         self.text_edit.textChanged.connect(self.on_msg_str_slot)
 
-    def on_msg_str_slot(self):
+    def on_msg_str_slot(self) -> None:
         self.cfg.set("rule", "default", self.text_edit.toPlainText())
 
-    def add_uncretain(self):
+    def add_uncretain(self) -> None:
         self.uncretain = UncertainEditWindow(self.main_window, self.cfg)
         self.uncretain.show()
 
-    def fold_toggle(self):
+    def fold_toggle(self) -> None:
         for i in self.main_window.scene.items():
             if isinstance(i, LensWidget):
                 i.toggle_visible()
                 i.updateGeometry()
 
-    def run_rule(self):
+    def run_rule(self) -> None:
         if hasattr(self.main_window, "un_rule_set_str"):
             self.main_window.un_rule_set_str = self.uncretain.un_text_edit.toPlainText()
             un_ruleset = Ruleset(self.main_window.un_rule_set_str)
@@ -261,12 +262,12 @@ class RuleEditWindow(QWidget):
         g_layout = QGraphicsLinearLayout(Qt.Vertical)
         g_widget = QGraphicsWidget()
         g_widget.setLayout(g_layout)
-        a = 0
-        good = []
-        li = []
-        helist = []
+        a:int = 0
+        good:List[Any] = []
+        li:List[Any] = []
+        helist:List[Any] = []
         for l in self.main_window.lens:
-            failed = [(d, msg) for d in l.defects if (msg := ruleset(d)) is not None]
+            failed = [(d, msg) for d in l.defects if (msg := ruleset(d)) is not None]  # type: ignore
             if failed:
                 g_layout.addItem(LensWidget(l.xml_path, failed, Qt.red))
                 li.append(int(l.xml_path.stem))
@@ -278,7 +279,7 @@ class RuleEditWindow(QWidget):
         b = 0
         for g in good:
             un_failed = [
-                (d, msg) for d in g.defects if (msg := un_ruleset(d)) is not None
+                (d, msg) for d in g.defects if (msg := un_ruleset(d)) is not None  # type: ignore
             ]
             if un_failed:
                 g_layout.addItem(LensWidget(g.xml_path, un_failed, Qt.green))
@@ -290,7 +291,7 @@ class RuleEditWindow(QWidget):
         logger.info(sorted(helist))
         self.main_window.scene.addItem(g_widget)
 
-    def export_btn_clicked(self):
+    def export_btn_clicked(self) -> None:
         path: str = QFileDialog.getExistingDirectory(self, "getExistingDirectory")
         logger.info(Path(path))
         for l in self.list:
@@ -306,7 +307,7 @@ class RuleEditWindow(QWidget):
 
 
 class UncertainEditWindow(QWidget):
-    def __init__(self, main_window, cfg, parent=None) -> None:
+    def __init__(self, main_window:MainWindow, cfg:Any, parent=None) -> None:
         super().__init__(parent)
         self.move(450, 150)
         self.main_window = main_window
@@ -318,7 +319,7 @@ class UncertainEditWindow(QWidget):
         layout.addWidget(self.un_text_edit)
         self.init_un_rule_text()
 
-    def init_un_rule_text(self):
+    def init_un_rule_text(self) -> None:
         d = 2194
         d1 = 1329
         a = 1710
@@ -415,5 +416,5 @@ class UncertainEditWindow(QWidget):
         self.un_text_edit.setText(un_default_rule)
         self.un_text_edit.textChanged.connect(self.un_text_slot)
 
-    def un_text_slot(self):
+    def un_text_slot(self) -> None:
         self.cfg.set("rule", "uncertain_default", self.un_text_edit.toPlainText())
