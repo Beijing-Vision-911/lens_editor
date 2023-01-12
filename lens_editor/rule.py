@@ -1,15 +1,16 @@
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from typing import Any, Callable, DefaultDict, Dict, List,Union,Optional
 
 
 # Chain of Responsibility
 class Handler(ABC):
     @abstractmethod
-    def handle(self, defect):
+    def handle(self, defect) -> Any: 
         pass
 
     @abstractmethod
-    def set_next(self, handler):
+    def set_next(self, handler) -> Any:
         pass
 
 
@@ -20,13 +21,13 @@ class AbstractHandler(Handler):
         self._next_handler = handler
         return handler
 
-    def handle(self, defect):
+    def handle(self, defect) -> None:
         if self._next_handler:
             return self._next_handler.handle(defect)
         return None
 
 
-def xymapping(x, y) -> bool:
+def xymapping(x:int, y:int) -> Any:
     # 第一象限 > 第三
     if x >= 1200 and y <= 1200:
         xmin = x - 1275
@@ -56,8 +57,7 @@ def xymapping(x, y) -> bool:
         ymax = y - 925
         return lambda x, y: (x <= xmax and x >= xmin) and (y >= ymin and y <= ymax)
 
-
-def linemapping(xmin, ymin, xmax, ymax):
+def linemapping(xmin:int, ymin:int, xmax:int, ymax:int) -> Any:
     # 第一象限 > 第三
     if xmax >= 1200 and ymax <= 1200:
         xmin = xmin - 1275
@@ -94,7 +94,7 @@ def linemapping(xmin, ymin, xmax, ymax):
         return lambda x, y, x_, y_,: (x_ <= xmax and x >= xmin) and (
             y >= ymin and y_ <= ymax
         )
-
+    return None
 
 # Parser
 def sexp_parser(sexp):
@@ -121,9 +121,9 @@ def sexp_parser(sexp):
 
     if sexp[0] == "W":
 
-        def left_widht(d):
+        def left_widht(d) -> bool:
             fn = xymapping(d.x, d.y)
-            mappings = [d_.width for d_ in d.lens.left if fn(d_.x, d_.y)]
+            mappings:List[int] = [d_.width for d_ in d.lens.left if fn(d_.x, d_.y)]
             for w in mappings:
                 if w > eval(sexp[2:]):
                     return True
@@ -169,11 +169,11 @@ def line_parser(line):
 
 
 class DefaultFactory:
-    def __init__(self):
+    def __init__(self) -> None:
         self.head = AbstractHandler()
         self.next = None
 
-    def add(self, handler):
+    def add(self, handler) -> None:
         if self.next:
             self.next.set_next(handler)
         else:
@@ -185,14 +185,14 @@ class DefaultFactory:
 
 
 class Ruleset:
-    def __init__(self, rule_text):
-        self.rules = defaultdict(DefaultFactory)
+    def __init__(self, rule_text) -> None:
+        self.rules:DefaultDict[Any, DefaultFactory] = defaultdict(DefaultFactory)
         self._parse(rule_text)
 
-    def _parse(self, rule_text):
+    def _parse(self, rule_text) -> None:
         for line in [l for l in rule_text.splitlines() if l.strip()]:
             key, handler = line_parser(line)
             self.rules[key].add(handler)
 
-    def __call__(self, defect):
+    def __call__(self, defect) -> None:
         return self.rules[defect.name].handle(defect)

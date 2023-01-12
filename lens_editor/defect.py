@@ -1,7 +1,8 @@
+from typing import Any, List
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-import cv2
+import cv2 # type:ignore
 import sys
 from PySide6 import QtCore, QtWidgets
 from PySide6.QtCore import QPoint, Qt
@@ -11,6 +12,8 @@ from PySide6.QtWidgets import (QGraphicsItem, QGraphicsItemGroup,
                                QGraphicsScene, QGraphicsSimpleTextItem,
                                QGraphicsView, QGridLayout, QLabel, QPushButton,
                                QToolTip, QWidget)
+from cv2 import Mat
+from numpy import str_
 
 from .minimap import Minimap, numpy2pixmap
 
@@ -23,34 +26,34 @@ logger = logging.getLogger(__name__)
 
 
 class Lens:
-    def __init__(self, xml_path: Path, img_path: Path):
-        self.xml_path = xml_path
-        self.img_path = img_path
-        self.defects = self.load_defects()
+    def __init__(self, xml_path: Path, img_path: Path) -> None:
+        self.xml_path : Path = xml_path
+        self.img_path : Path = img_path
+        self.defects: List[str] = self.load_defects()
         self.modified = False
         self.leftandright()
 
-    def load_defects(self):
-        self.tree = ET.parse(str(self.xml_path))
-        self.img = cv2.imread(str(self.img_path))
-        root = self.tree.getroot()
+    def load_defects(self) -> List[str]:
+        self.tree : ET.ElementTree= ET.parse(str(self.xml_path))
+        self.img : Mat = cv2.imread(str(self.img_path))
+        root: ET.ElementTree = self.tree.getroot()
         return [Defect(self, obj) for obj in root.iter("object")]
 
-    def set_modified(self, state: bool):
+    def set_modified(self, state: bool) -> None:
         self.modified = state
 
-    def leftandright(self):
-        self.left = [d for d in self.defects if d.x < 1200]
-        self.right = [d for d in self.defects if d.x >= 1200]
+    def leftandright(self) -> None:
+        self.left: List[str]= [d for d in self.defects if d.x < 1200]
+        self.right: List[str]= [d for d in self.defects if d.x >= 1200]
 
-    def save(self):
+    def save(self)-> None:
         if self.modified:
             self.tree.write(str(self.xml_path))
             self.modified = False
 
 
 class Defect:
-    def __init__(self, lens: Lens, obj: ET.Element):
+    def __init__(self, lens: Lens, obj: ET.Element)-> None:
         self.lens = lens
         self._obj = obj
         self._parse_obj(obj)
@@ -61,22 +64,22 @@ class Defect:
         return f"{self.name}: {self.xmin}, {self.ymin}, {self.xmax}, {self.ymax}"
 
     @property
-    def name(self):
+    def name(self) -> None:
         pass
 
     @name.getter
-    def name(self):
+    def name(self) -> str:
         return self._name
 
     @name.setter
-    def name(self, new_name):
-        name = self._obj.find("name")
-        name.text = new_name
+    def name(self, new_name) -> None:
+        name  = self._obj.find("name")
+        name.text= new_name
         self.lens.set_modified(True)
-        self._name = new_name
+        self._name : str = new_name
 
-    def _parse_obj(self, obj):
-        self._name = obj.find("name").text
+    def _parse_obj(self, obj)-> None:
+        self._name : str = obj.find("name").text
         self.xmin = self.x = int(obj.find("bndbox/xmin").text)
         self.ymin = self.y = int(obj.find("bndbox/ymin").text)
         self.xmax = self.x_ = int(obj.find("bndbox/xmax").text)
@@ -84,10 +87,10 @@ class Defect:
         self.width = self.w = self.xmax - self.xmin
         self.height = self.h = self.ymax - self.ymin
 
-    def _crop(self, orig_img):
-        self.image = orig_img[self.ymin : self.ymax, self.xmin : self.xmax].copy()
+    def _crop(self, orig_img)-> None:
+        self.image: List[int] = orig_img[self.ymin : self.ymax, self.xmin : self.xmax].copy()
 
-    def remove(self):
+    def remove(self)-> None:
         self.lens.set_modified(True)
         self.lens.tree.getroot().remove(self._obj)
 
@@ -101,28 +104,28 @@ class DefectEdit(QWidget, Lens, Defect):
     def __init__(self, defect, parent=None) -> None:
         super().__init__(parent)
         self.defect = defect
-        self.defects = Lens.load_defects
-        layout = QGridLayout()
+        self.defects: List[str] = Lens.load_defects
+        layout: QGridLayout = QGridLayout()
         self.setLayout(layout)
-        self.test_button = QPushButton("EDIT", self)
+        self.test_button: QPushButton = QPushButton("EDIT", self)
         self.test_button.clicked.connect(self.edit)
-        label_name = QLabel("Name:")
-        label_name_field = QLabel(self.defect.name)
-        label_f_path = QLabel("XML Path:")
-        label_f_path_field = QLabel(str(self.defect.lens.xml_path))
+        label_name: QLabel = QLabel("Name:")
+        label_name_field : QLabel= QLabel(self.defect.name)
+        label_f_path : QLabel= QLabel("XML Path:")
+        label_f_path_field: QLabel = QLabel(str(self.defect.lens.xml_path))
         label_f_path_field.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        label_i_path = QLabel("Image Path:")
-        label_i_path_field = QLabel(str(self.defect.lens.img_path))
+        label_i_path: QLabel = QLabel("Image Path:")
+        label_i_path_field: QLabel= QLabel(str(self.defect.lens.img_path))
         label_i_path_field.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        label_coordinate = QLabel("Coordinate:")
-        label_coordinate_field = QLabel(
+        label_coordinate: QLabel = QLabel("Coordinate:")
+        label_coordinate_field: QLabel = QLabel(
             f"({self.defect.xmin}, {self.defect.ymin}) ({self.defect.xmax}, {self.defect.ymax})"
         )
-        label_width = QLabel("Width:")
-        label_width_field = QLabel(f"{self.defect.width}")
-        label_height = QLabel(f"Height:")
-        label_height_field = QLabel(f"{self.defect.height}")
-        self.label_map = QLabel()
+        label_width: QLabel = QLabel("Width:")
+        label_width_field: QLabel = QLabel(f"{self.defect.width}")
+        label_height: QLabel = QLabel(f"Height:")
+        label_height_field: QLabel = QLabel(f"{self.defect.height}")
+        self.label_map: QLabel = QLabel()
         self.label_map.setAlignment(Qt.AlignCenter)
         self.label_map.setPixmap(self._minimap())
 
@@ -142,33 +145,33 @@ class DefectEdit(QWidget, Lens, Defect):
         layout.addWidget(self.label_map, 7, 0, 1, 2)
 
     def _minimap(self) -> QPixmap:
-        minimap = Minimap(self.defect, self.defects, self.width())
+        minimap: Minimap = Minimap(self.defect, self.defects, self.width())
         return minimap.draw(self.defect, self.defects)
 
-    def edit(self):
-        self.Ss = complex(self.defect)
+    def edit(self)-> None:
+        self.Ss: complex = complex(self.defect)
         self.Ss.show()
 
 
 class complex(QGraphicsView):
-    def __init__(self, defect, parent=None):
+    def __init__(self, defect, parent=None)-> None:
         super(complex, self).__init__(parent)
-        self.scene1 = QGraphicsScene()
-        self.item = QGraphicsPixmapItem()
+        self.scene1: QGraphicsScene = QGraphicsScene()
+        self.item: QGraphicsPixmapItem = QGraphicsPixmapItem()
         self.defect = defect
         self.resize(1300, 1400)
-        self.singleOffset = QPoint(0, 0)
+        self.singleOffset: QPoint = QPoint(0, 0)
         self.isLeftPressed = bool(False)  # 图片被点住(鼠标左键)标志位
         self.isImgLabelArea = bool(True)
         self.edit1()
 
-    def edit1(self):
+    def edit1(self)-> None:
         self.rectitemsize_y = self.defect.xmax - self.defect.xmin
         self.rectitemsize_x = self.defect.ymax - self.defect.ymin
         self.xxx = 1
         self.rect_key_y = 0
         self.rect_key_x = 0
-        self.rect_key = QPoint(0, 0)
+        self.rect_key: QPoint = QPoint(0, 0)
         d_img = self.defect.image
         d_w, d_h = d_img.shape[:2]
         r_w = 100
@@ -456,7 +459,7 @@ w: {self.defect.width}"""
 
     def mouseDoubleClickEvent(self, event) -> None:
         if event.button() == Qt.LeftButton:
-            self.defect_edit = DefectEdit(self.defect)
+            self.defect_edit: DefectEdit = DefectEdit(self.defect)
             DefectEdit(self.defect)
             self.defect_edit.show()
 
