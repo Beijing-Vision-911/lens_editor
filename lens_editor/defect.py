@@ -1,9 +1,11 @@
-from typing import Any, List
+import sys
+from typing import Any, List, Optional
+from xml.dom.minidom import Element
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import cv2 # type:ignore
-import sys
+import numpy
 from PySide6 import QtCore, QtWidgets
 from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QBrush, QColor, QCursor, QPixmap
@@ -12,8 +14,6 @@ from PySide6.QtWidgets import (QGraphicsItem, QGraphicsItemGroup,
                                QGraphicsScene, QGraphicsSimpleTextItem,
                                QGraphicsView, QGridLayout, QLabel, QPushButton,
                                QToolTip, QWidget)
-from cv2 import Mat
-from numpy import str_
 
 from .minimap import Minimap, numpy2pixmap
 
@@ -29,22 +29,23 @@ class Lens:
     def __init__(self, xml_path: Path, img_path: Path) -> None:
         self.xml_path : Path = xml_path
         self.img_path : Path = img_path
-        self.defects: List[str] = self.load_defects()
+        self.defects: List[Defect] = self.load_defects()
         self.modified = False
         self.leftandright()
 
-    def load_defects(self) -> List[str]:
+    def load_defects(self) -> List[Defect]:
         self.tree : ET.ElementTree= ET.parse(str(self.xml_path))
-        self.img : Mat = cv2.imread(str(self.img_path))
-        root: ET.ElementTree = self.tree.getroot()
-        return [Defect(self, obj) for obj in root.iter("object")]
+        self.img:numpy.ndarray = cv2.imread(str(self.img_path))
+        print(type(self.img))
+        root = self.tree.getroot()
+        return [Defect(self, obj) for obj in root.iter("object")] 
 
     def set_modified(self, state: bool) -> None:
         self.modified = state
 
     def leftandright(self) -> None:
-        self.left: List[str]= [d for d in self.defects if d.x < 1200]
-        self.right: List[str]= [d for d in self.defects if d.x >= 1200]
+        self.left:List[Defect] = [d for d in self.defects if d.x < 1200] 
+        self.right:List[Defect] = [d for d in self.defects if d.x >= 1200] 
 
     def save(self)-> None:
         if self.modified:
@@ -73,13 +74,13 @@ class Defect:
 
     @name.setter
     def name(self, new_name) -> None:
-        name  = self._obj.find("name")
-        name.text= new_name
+        name: Optional[ET.Element] = self._obj.find("name")
+        name.text = new_name # type:ignore
         self.lens.set_modified(True)
-        self._name : str = new_name
+        self._name = new_name
 
     def _parse_obj(self, obj)-> None:
-        self._name : str = obj.find("name").text
+        self._name = obj.find("name").text
         self.xmin = self.x = int(obj.find("bndbox/xmin").text)
         self.ymin = self.y = int(obj.find("bndbox/ymin").text)
         self.xmax = self.x_ = int(obj.find("bndbox/xmax").text)
@@ -88,7 +89,7 @@ class Defect:
         self.height = self.h = self.ymax - self.ymin
 
     def _crop(self, orig_img)-> None:
-        self.image: List[int] = orig_img[self.ymin : self.ymax, self.xmin : self.xmax].copy()
+        self.image = orig_img[self.ymin : self.ymax, self.xmin : self.xmax].copy()
 
     def remove(self)-> None:
         self.lens.set_modified(True)
@@ -100,11 +101,11 @@ class Defect:
         return self.mark
 
 
-class DefectEdit(QWidget, Lens, Defect):
-    def __init__(self, defect, parent=None) -> None:
+class DefectEdit(QWidget, Lens, Defect):  # type:ignore
+    def __init__(self, defect:Defect, parent=None) -> None:
         super().__init__(parent)
         self.defect = defect
-        self.defects: List[str] = Lens.load_defects
+        self.defects= Lens.load_defects # type:ignore
         layout: QGridLayout = QGridLayout()
         self.setLayout(layout)
         self.test_button: QPushButton = QPushButton("EDIT", self)
@@ -113,10 +114,10 @@ class DefectEdit(QWidget, Lens, Defect):
         label_name_field : QLabel= QLabel(self.defect.name)
         label_f_path : QLabel= QLabel("XML Path:")
         label_f_path_field: QLabel = QLabel(str(self.defect.lens.xml_path))
-        label_f_path_field.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        label_f_path_field.setTextInteractionFlags(Qt.TextSelectableByMouse) # type:ignore
         label_i_path: QLabel = QLabel("Image Path:")
         label_i_path_field: QLabel= QLabel(str(self.defect.lens.img_path))
-        label_i_path_field.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        label_i_path_field.setTextInteractionFlags(Qt.TextSelectableByMouse) # type:ignore
         label_coordinate: QLabel = QLabel("Coordinate:")
         label_coordinate_field: QLabel = QLabel(
             f"({self.defect.xmin}, {self.defect.ymin}) ({self.defect.xmax}, {self.defect.ymax})"
@@ -126,7 +127,7 @@ class DefectEdit(QWidget, Lens, Defect):
         label_height: QLabel = QLabel(f"Height:")
         label_height_field: QLabel = QLabel(f"{self.defect.height}")
         self.label_map: QLabel = QLabel()
-        self.label_map.setAlignment(Qt.AlignCenter)
+        self.label_map.setAlignment(Qt.AlignCenter) # type:ignore
         self.label_map.setPixmap(self._minimap())
 
         layout.addWidget(label_name, 0, 0)
@@ -145,7 +146,7 @@ class DefectEdit(QWidget, Lens, Defect):
         layout.addWidget(self.label_map, 7, 0, 1, 2)
 
     def _minimap(self) -> QPixmap:
-        minimap: Minimap = Minimap(self.defect, self.defects, self.width())
+        minimap = Minimap(self.defect, self.defects, self.width()) # type:ignore
         return minimap.draw(self.defect, self.defects)
 
     def edit(self)-> None:
@@ -166,8 +167,8 @@ class complex(QGraphicsView):
         self.edit1()
 
     def edit1(self)-> None:
-        self.rectitemsize_y = self.defect.xmax - self.defect.xmin
-        self.rectitemsize_x = self.defect.ymax - self.defect.ymin
+        self.rectitemsize_y:int = self.defect.xmax - self.defect.xmin
+        self.rectitemsize_x:int  = self.defect.ymax - self.defect.ymin
         self.xxx = 1
         self.rect_key_y = 0
         self.rect_key_x = 0
@@ -176,13 +177,13 @@ class complex(QGraphicsView):
         d_w, d_h = d_img.shape[:2]
         r_w = 100
         r_h = int(r_w * d_w / d_h)
-        self.pixmap1 = numpy2pixmap(self.defect.lens.img.copy())
+        self.pixmap1:QPixmap = numpy2pixmap(self.defect.lens.img.copy())
         self.item.setPixmap(self.pixmap1)
         self.scene1.addItem(self.item)
         self.setScene(self.scene1)
         self.fitInView(self.defect.xmax - 50, self.defect.ymin - 50, 200, 200)
-        self.rect_item = QtWidgets.QGraphicsRectItem()
-        self.rect_item1 = QtWidgets.QGraphicsRectItem()
+        self.rect_item:QGraphicsLayoutItem = QtWidgets.QGraphicsRectItem()
+        self.rect_item1:QGraphicsLayoutItem = QtWidgets.QGraphicsRectItem()
         if self.defect.name[0] == "1" or self.defect.name[0] == "0":
             self.xymapping(self.defect.xmin, self.defect.ymin)
         else:
@@ -202,13 +203,13 @@ class complex(QGraphicsView):
         self.scene1.addItem(self.rect_item)
         self.scene1.addItem(self.rect_item1)
 
-    def xymapping(self, x, y) -> bool:
+    def xymapping(self, x, y) -> None:
         # 第一象限 > 第三
         if x >= 1200 and y <= 1200:
-            self.xmin = x - 1275
-            self.xmax = x - 1025
-            self.ymin = 925 + y
-            self.ymax = 1175 + y
+            self.xmin:int = x - 1275
+            self.xmax:int = x - 1025
+            self.ymin:int = 925 + y
+            self.ymax:int = 1175 + y
 
         # 第四象限
         if x >= 1200 and y > 1200:
@@ -231,7 +232,7 @@ class complex(QGraphicsView):
             self.ymin = y - 1175
             self.ymax = y - 925
 
-    def linemapping(self, xmin, ymin, xmax, ymax) -> bool:
+    def linemapping(self, xmin, ymin, xmax, ymax) -> None:
         # 第一象限 > 第三
         if xmax >= 1200 and ymax <= 1200:
             self.xmin = xmin - 1275
@@ -260,13 +261,13 @@ class complex(QGraphicsView):
             self.ymin = ymin - 1175
             self.ymax = ymax - 925
 
-    def wheelEvent(self, event):
+    def wheelEvent(self, event) -> None:
         if event.angleDelta().y() > 0:
             self.scale(1.5, 1.5)
         elif event.angleDelta().y() < 0:
             self.scale(1 / 1.5, 1 / 1.5)
 
-    def keyPressEvent(self, QKeyEvent):
+    def keyPressEvent(self, QKeyEvent) -> None:
         if QKeyEvent.key() == Qt.Key_S:  # =s时，保存矩形坐标至xml
             return self.keyPressEvent2(QKeyEvent)
         if QKeyEvent.key() == Qt.Key_B:
@@ -291,7 +292,7 @@ class complex(QGraphicsView):
             self.rect_key += QPoint(5, 0)
             self.rect_key_x += 5
 
-    def keyPressEvent2(self, QKeyEvent):
+    def keyPressEvent2(self, QKeyEvent) -> None:
 
         xmin = self.defect._obj.find("bndbox/xmin")
         xmin.text = f"{self.defect.xmin+self.rect_key_x}"
@@ -308,9 +309,9 @@ class complex(QGraphicsView):
         self.defect.lens.tree.write(str(self.defect.lens.xml_path))
         logger.info("Successful")
 
-    def keyPressEvent3(self, QKeyEvent):
-        xml_file = f"{self.defect.lens.xml_path}"
-        tree = ET.parse(xml_file)
+    def keyPressEvent3(self, QKeyEvent) -> None:
+        xml_file:str = f"{self.defect.lens.xml_path}"
+        tree:ET.ElementTree= ET.parse(xml_file)
         root = tree.getroot()
         sub1 = ET.SubElement(root, "object")
         SubElement_country0 = ET.SubElement(sub1, "name")
@@ -337,7 +338,7 @@ class complex(QGraphicsView):
         tree.write(xml_file)
         logger.info("Successful")
 
-    def prettyXml(self, element, indent, newline, level=0):
+    def prettyXml(self, element, indent, newline, level=0) -> None:
         if element:
             if element.text == None or element.text.isspace():
                 element.text = newline + indent * (level + 1)
@@ -358,27 +359,27 @@ class complex(QGraphicsView):
                 subelement.tail = newline + indent * level
             self.prettyXml(subelement, indent, newline, level=level + 1)
 
-    def mouseMoveEvent(self, event):
+    def mouseMoveEvent(self, event)-> None:
         if event.modifiers() == Qt.ControlModifier:
             return self.mouseMoveEvent2(event)
         if self.isLeftPressed:
-            self.label_x1 = QCursor.pos().x()
-            self.label_y1 = QCursor.pos().y()
-            self.new_label_x = self.label_x1 - self.label_x
-            self.new_label_y = self.label_y1 - self.label_y
-            self.label_x = self.label_x1
-            self.label_y = self.label_y1
-            self.singe = QPoint(self.new_label_x, self.new_label_y)
+            self.label_x1: int = QCursor.pos().x()
+            self.label_y1: int = QCursor.pos().y()
+            self.new_label_x: int = self.label_x1 - self.label_x
+            self.new_label_y: int = self.label_y1 - self.label_y
+            self.label_x: int = self.label_x1
+            self.label_y: int = self.label_y1
+            self.singe: QPoint = QPoint(self.new_label_x, self.new_label_y)
             self.singleOffset = self.singe + self.singleOffset
             self.item.setPos(self.singleOffset)
             self.rect_item.setPos(self.singleOffset + self.rect_key)
             self.rect_item1.setPos(self.singleOffset)
 
-    def mouseMoveEvent2(self, event):
-        self.rect_x1 = QCursor.pos().x()
-        self.rect_y1 = QCursor.pos().y()
-        self.new_rect_x1 = self.rect_x1 - self.label_x
-        self.new_rect_y1 = self.rect_y1 - self.label_y
+    def mouseMoveEvent2(self, event) -> None:
+        self.rect_x1: int = QCursor.pos().x()
+        self.rect_y1: int = QCursor.pos().y()
+        self.new_rect_x1: int = self.rect_x1 - self.label_x
+        self.new_rect_y1: int = self.rect_y1 - self.label_y
         self.rectitemsize_x = self.new_rect_x1
         self.rectitemsize_y = self.new_rect_y1
         self.rect_item.setRect(
@@ -392,14 +393,14 @@ class complex(QGraphicsView):
     def mousePressEvent(self, event):
         if event.buttons() == QtCore.Qt.LeftButton:
             self.isLeftPressed = True
-            self.label_x = QCursor.pos().x()
-            self.label_y = QCursor.pos().y()
+            self.label_x: int = QCursor.pos().x()
+            self.label_y: int = QCursor.pos().y()
             self.left = self.mapToScene(self.mapFromParent(QCursor.pos())).x()
             self.right = self.mapToScene(self.mapFromParent(QCursor.pos())).y()
         elif event.buttons() == QtCore.Qt.RightButton:
             pass
 
-    def mouseReleaseEvent(self, event):
+    def mouseReleaseEvent(self, event)-> None:
         if event.button() == Qt.LeftButton:
             pass
         elif event.button() == Qt.RightButton:
@@ -425,18 +426,17 @@ class DefectItem(QGraphicsItemGroup):
         self.setCacheMode(QGraphicsItem.DeviceCoordinateCache)
         self.setFlag(QGraphicsItem.ItemIsSelectable)
         self.defect: Defect = defect
-        self.label = QGraphicsSimpleTextItem(defect.name)
-        self.img = QGraphicsPixmapItem()
+        self.label:QGraphicsSimpleTextItem = QGraphicsSimpleTextItem(defect.name)
+        self.img:QGraphicsPixmapItem = QGraphicsPixmapItem()
         self.img.setPixmap(
-            numpy2pixmap(defect.image).scaledToWidth(50, Qt.SmoothTransformation)
-        )
+            numpy2pixmap(defect.image).scaledToWidth(50, Qt.SmoothTransformation)) # type:ignore
         self.addToGroup(self.label)
         self.label.setY(-13)
         self.label.setX(12)
         self.addToGroup(self.img)
         self._rect = self.childrenBoundingRect()
-        self._label_color = QColor("black")
-        self.msg = msg
+        self._label_color:QColor = QColor("black")
+        self.msg:str = msg
 
     def paint(self, painter, option, widget=None):
         painter.drawRect(self._rect)
@@ -448,7 +448,7 @@ class DefectItem(QGraphicsItemGroup):
         return DefectLayoutItem(self)
 
     def mousePressEvent(self, event) -> None:
-        tooltip = f"""{self.msg}
+        tooltip:str = f"""{self.msg}
 x: {self.defect.xmin}
 y: {self.defect.ymin}
 h: {self.defect.height}
@@ -470,11 +470,11 @@ w: {self.defect.width}"""
             self.label.setBrush(self._label_color)
         return state
 
-    def rename(self, name):
+    def rename(self, name) -> None:
         self.defect.name = name
         self.label.setText(name)
 
-    def itemChange(self, change, value):
+    def itemChange(self, change, value)->None:
         if change == QGraphicsItem.ItemSelectedChange:
             if value:
                 self.label.setBrush(QBrush(QColor("green")))
