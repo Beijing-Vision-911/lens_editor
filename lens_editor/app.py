@@ -7,7 +7,7 @@ from typing import Any, Union,List
 
 from openpyxl import Workbook  # type:ignore
 from PySide6.QtCore import QMutex, QThreadPool
-from PySide6.QtGui import QKeySequence, QPixmapCache, QShortcut
+from PySide6.QtGui import QKeySequence, QPixmapCache, QShortcut, QCloseEvent
 from PySide6.QtWidgets import (QApplication, QCompleter, QFileDialog,
                                QGraphicsGridLayout, QGraphicsScene,
                                QGraphicsWidget, QHBoxLayout,
@@ -130,7 +130,7 @@ class MainWindow(QMainWindow):
         for i in items:
             i.rename(new_label)
 
-    def save_btn_clicked(self):
+    def save_btn_clicked(self)-> None:
         mod_files_num: int = len([i for i in self.lens if i.modified])
         for i in self.lens:
             i.save()
@@ -151,7 +151,7 @@ class MainWindow(QMainWindow):
 
         self.status_bar.showMessage(message)
 
-    def filter_apply(self, query, search_bar_update=False):
+    def filter_apply(self, query:str, search_bar_update=False)-> None:
         d_list: List[Defect] = self.filter_parser.parse(query, self.defects)
         self.view_update(d_list)
         self.status_bar.showMessage(
@@ -177,11 +177,11 @@ class MainWindow(QMainWindow):
 
         parms = [(x, find_jpeg(x)) for x in xml_files if find_jpeg(x)]
 
-        self.lens: List = []
+        self.lens: List[Any] = []
         self.total_file: int = len(parms)
         self.processed_file = 0
         for f, j in parms:
-            w = Worker(Lens, f, j)
+            w:Worker = Worker(Lens, f, j)
             w.signals.result.connect(self.worker_done)
             self.thread_pool.start(w)
 
@@ -190,7 +190,7 @@ class MainWindow(QMainWindow):
         self._load_files(file_path)
 
 
-    def worker_done(self, lz) -> None:
+    def worker_done(self, lz:object) -> None:
         self.mutex.lock()
         self.lens.append(lz)
         self.processed_file += 1
@@ -212,7 +212,7 @@ class MainWindow(QMainWindow):
                 f"No Filter, Category: {len(complete_candidates)},Total: {len(self.defects)}"
             )
 
-    def view_update(self, d_list) -> None:
+    def view_update(self, d_list:List) -> None:
         g_layout : QGraphicsGridLayout = QGraphicsGridLayout()
         g_layout.setContentsMargins(10, 10, 10, 10)
         g_layout.setSpacing(25)
@@ -305,7 +305,7 @@ class MainWindow(QMainWindow):
                 return name
         return False
 
-    def closeEvent(self, event) -> None:
+    def closeEvent(self, event:QCloseEvent) -> None:
         reply: int = QMessageBox.question(
             self, "提示", "是否关闭所有窗口", QMessageBox.Yes | QMessageBox.No, QMessageBox.No
         )

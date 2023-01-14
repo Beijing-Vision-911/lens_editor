@@ -1,5 +1,5 @@
 import sys
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 from xml.dom.minidom import Element
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -7,8 +7,8 @@ from pathlib import Path
 import cv2 # type:ignore
 import numpy
 from PySide6 import QtCore, QtWidgets
-from PySide6.QtCore import QPoint, Qt
-from PySide6.QtGui import QBrush, QColor, QCursor, QPixmap
+from PySide6.QtCore import QPoint, Qt, QSize,QSizeF
+from PySide6.QtGui import QBrush, QColor, QCursor, QPixmap, QWheelEvent, QKeyEvent
 from PySide6.QtWidgets import (QGraphicsItem, QGraphicsItemGroup,
                                QGraphicsLayoutItem, QGraphicsPixmapItem,
                                QGraphicsScene, QGraphicsSimpleTextItem,
@@ -73,7 +73,7 @@ class Defect:
         return self._name
 
     @name.setter
-    def name(self, new_name) -> None:
+    def name(self, new_name:str) -> None:
         name: Optional[ET.Element] = self._obj.find("name")
         name.text = new_name # type:ignore
         self.lens.set_modified(True)
@@ -88,8 +88,8 @@ class Defect:
         self.width = self.w = self.xmax - self.xmin
         self.height = self.h = self.ymax - self.ymin
 
-    def _crop(self, orig_img)-> None:
-        self.image = orig_img[self.ymin : self.ymax, self.xmin : self.xmax].copy()
+    def _crop(self, orig_img:numpy.ndarray)-> None:
+        self.image:numpy.ndarray = orig_img[self.ymin : self.ymax, self.xmin : self.xmax].copy()
 
     def remove(self)-> None:
         self.lens.set_modified(True)
@@ -203,7 +203,7 @@ class complex(QGraphicsView):
         self.scene1.addItem(self.rect_item)
         self.scene1.addItem(self.rect_item1)
 
-    def xymapping(self, x, y) -> None:
+    def xymapping(self, x:int, y:int) -> None:
         # 第一象限 > 第三
         if x >= 1200 and y <= 1200:
             self.xmin:int = x - 1275
@@ -232,7 +232,7 @@ class complex(QGraphicsView):
             self.ymin = y - 1175
             self.ymax = y - 925
 
-    def linemapping(self, xmin, ymin, xmax, ymax) -> None:
+    def linemapping(self, xmin:int, ymin:int, xmax:int, ymax:int) -> None:
         # 第一象限 > 第三
         if xmax >= 1200 and ymax <= 1200:
             self.xmin = xmin - 1275
@@ -261,13 +261,14 @@ class complex(QGraphicsView):
             self.ymin = ymin - 1175
             self.ymax = ymax - 925
 
-    def wheelEvent(self, event) -> None:
-        if event.angleDelta().y() > 0:
+
+    def wheelEvent(self, event:QWheelEvent) -> None:
+        if event.angleDelta().y() > 0:     
             self.scale(1.5, 1.5)
         elif event.angleDelta().y() < 0:
             self.scale(1 / 1.5, 1 / 1.5)
 
-    def keyPressEvent(self, QKeyEvent) -> None:
+    def keyPressEvent(self, QKeyEvent:QKeyEvent) -> None:
         if QKeyEvent.key() == Qt.Key_S:  # =s时，保存矩形坐标至xml
             return self.keyPressEvent2(QKeyEvent)
         if QKeyEvent.key() == Qt.Key_B:
@@ -292,7 +293,7 @@ class complex(QGraphicsView):
             self.rect_key += QPoint(5, 0)
             self.rect_key_x += 5
 
-    def keyPressEvent2(self, QKeyEvent) -> None:
+    def keyPressEvent2(self, QKeyEvent:QKeyEvent) -> None:
 
         xmin = self.defect._obj.find("bndbox/xmin")
         xmin.text = f"{self.defect.xmin+self.rect_key_x}"
@@ -309,7 +310,7 @@ class complex(QGraphicsView):
         self.defect.lens.tree.write(str(self.defect.lens.xml_path))
         logger.info("Successful")
 
-    def keyPressEvent3(self, QKeyEvent) -> None:
+    def keyPressEvent3(self, QKeyEvent:QKeyEvent) -> None:
         xml_file:str = f"{self.defect.lens.xml_path}"
         tree:ET.ElementTree= ET.parse(xml_file)
         root = tree.getroot()
@@ -338,15 +339,15 @@ class complex(QGraphicsView):
         tree.write(xml_file)
         logger.info("Successful")
 
-    def prettyXml(self, element, indent, newline, level=0) -> None:
+    def prettyXml(self, element:Union[ET.Element, Any], indent:str, newline:Any, level=0) -> None:
         if element:
-            if element.text == None or element.text.isspace():
+            if element.text == None or element.text.isspace():  # type:ignore
                 element.text = newline + indent * (level + 1)
             else:
                 element.text = (
                     newline
                     + indent * (level + 1)
-                    + element.text.strip()
+                    + element.text.strip() # type:ignore
                     + newline
                     + indent * (level + 1)
                 )
@@ -359,7 +360,7 @@ class complex(QGraphicsView):
                 subelement.tail = newline + indent * level
             self.prettyXml(subelement, indent, newline, level=level + 1)
 
-    def mouseMoveEvent(self, event)-> None:
+    def mouseMoveEvent(self, event:QWheelEvent)-> None:
         if event.modifiers() == Qt.ControlModifier:
             return self.mouseMoveEvent2(event)
         if self.isLeftPressed:
@@ -375,7 +376,7 @@ class complex(QGraphicsView):
             self.rect_item.setPos(self.singleOffset + self.rect_key)
             self.rect_item1.setPos(self.singleOffset)
 
-    def mouseMoveEvent2(self, event) -> None:
+    def mouseMoveEvent2(self, event:QWheelEvent) -> None:
         self.rect_x1: int = QCursor.pos().x()
         self.rect_y1: int = QCursor.pos().y()
         self.new_rect_x1: int = self.rect_x1 - self.label_x
@@ -390,17 +391,17 @@ class complex(QGraphicsView):
         )
         self.rect_item.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
 
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event:QWheelEvent):
         if event.buttons() == QtCore.Qt.LeftButton:
             self.isLeftPressed = True
-            self.label_x: int = QCursor.pos().x()
-            self.label_y: int = QCursor.pos().y()
+            self.label_x = QCursor.pos().x()
+            self.label_y = QCursor.pos().y()
             self.left = self.mapToScene(self.mapFromParent(QCursor.pos())).x()
             self.right = self.mapToScene(self.mapFromParent(QCursor.pos())).y()
         elif event.buttons() == QtCore.Qt.RightButton:
             pass
 
-    def mouseReleaseEvent(self, event)-> None:
+    def mouseReleaseEvent(self, event:QWheelEvent)-> None:
         if event.button() == Qt.LeftButton:
             pass
         elif event.button() == Qt.RightButton:
@@ -408,15 +409,15 @@ class complex(QGraphicsView):
 
 
 class DefectLayoutItem(QGraphicsLayoutItem):
-    def __init__(self, group, parent=None) -> None:
+    def __init__(self, group:Any, parent=None) -> None:
         super().__init__(parent)
         self.group = group
         self.setGraphicsItem(self.group)
 
-    def sizeHint(self, which, const):
+    def sizeHint(self, which, const:Union[QSizeF, QSize])->QSizeF: # type:ignore
         return self.group.boundingRect().size()
 
-    def setGeometry(self, rect):
+    def setGeometry(self, rect: Union[QtCore.QRectF, QtCore.QRect]) -> None:
         return self.group.setPos(rect.topLeft())
 
 
@@ -447,7 +448,7 @@ class DefectItem(QGraphicsItemGroup):
     def get_layout_item(self) -> DefectLayoutItem:
         return DefectLayoutItem(self)
 
-    def mousePressEvent(self, event) -> None:
+    def mousePressEvent(self, event:QWheelEvent) -> None:
         tooltip:str = f"""{self.msg}
 x: {self.defect.xmin}
 y: {self.defect.ymin}
@@ -457,7 +458,7 @@ w: {self.defect.width}"""
             QToolTip.showText(event.screenPos(), tooltip)
         super().mousePressEvent(event)
 
-    def mouseDoubleClickEvent(self, event) -> None:
+    def mouseDoubleClickEvent(self, event:QWheelEvent) -> None:
         if event.button() == Qt.LeftButton:
             self.defect_edit: DefectEdit = DefectEdit(self.defect)
             DefectEdit(self.defect)
@@ -470,7 +471,7 @@ w: {self.defect.width}"""
             self.label.setBrush(self._label_color)
         return state
 
-    def rename(self, name) -> None:
+    def rename(self, name:Any) -> None:
         self.defect.name = name
         self.label.setText(name)
 
