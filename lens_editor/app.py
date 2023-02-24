@@ -1,26 +1,27 @@
 import sys
+import logging
 from functools import partial
 from itertools import chain
 from pathlib import Path
+from typing import Any, Union,List
 
-from openpyxl import Workbook
+from openpyxl import Workbook  # type:ignore
 from PySide6.QtCore import QMutex, QThreadPool
-from PySide6.QtGui import QKeySequence, QPixmapCache, QShortcut
+from PySide6.QtGui import QKeySequence, QPixmapCache, QShortcut, QCloseEvent
 from PySide6.QtWidgets import (QApplication, QCompleter, QFileDialog,
                                QGraphicsGridLayout, QGraphicsScene,
                                QGraphicsWidget, QHBoxLayout,
                                QInputDialog, QLineEdit, QMainWindow,
                                QMessageBox, QPushButton, QStatusBar,
-                               QVBoxLayout, QWidget)
+                               QVBoxLayout, QWidget,QGraphicsItem)
 
 from .config import root_config
-from .defect import DefectItem, Lens
+from .defect import Defect, DefectItem, Lens
 from .rule import linemapping, xymapping
 from .rule_edit import RuleEditWindow
 from .search import FilterParser, QuickSearchSlot
 from .thread import Worker
 from .view import View
-import logging
 
 
 level = logging.ERROR if sys.argv[-1] != "-d" else logging.INFO
@@ -29,56 +30,56 @@ logger = logging.getLogger(__name__)
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, initial_path=""):
+    def __init__(self, initial_path="") -> None:
         super().__init__()
-        widget = QWidget()
-        main_layout = QVBoxLayout()
-        self.scene = QGraphicsScene()
-        self.main_view = View(self.scene)
+        widget: QWidget = QWidget()
+        main_layout: QVBoxLayout = QVBoxLayout()
+        self.scene: QGraphicsScene = QGraphicsScene()
+        self.main_view: View = View(self.scene)
         QPixmapCache.setCacheLimit(1024 * 1024 * 10)
 
         self.scene.setItemIndexMethod(QGraphicsScene.NoIndex)
         main_layout.addWidget(self.main_view)
 
-        bottom_layout = QHBoxLayout()
+        bottom_layout: QHBoxLayout = QHBoxLayout()
         main_layout.addLayout(bottom_layout)
-        self.status_bar = QStatusBar()
+        self.status_bar: QStatusBar = QStatusBar()
         self.setStatusBar(self.status_bar)
 
-        self.search_bar = QLineEdit()
+        self.search_bar: QLineEdit = QLineEdit()
         self.search_bar.returnPressed.connect(
             lambda: self.filter_apply(self.search_bar.text())
         )
         bottom_layout.addWidget(self.search_bar)
 
-        self.rule_edit_btn = QPushButton("Rule")
+        self.rule_edit_btn: QPushButton = QPushButton("Rule")
         self.rule_edit_btn.clicked.connect(self.rule_edit_btn_clicked)
         bottom_layout.addWidget(self.rule_edit_btn)
 
-        self.mark_btn = QPushButton("Mark(a)")
+        self.mark_btn: QPushButton = QPushButton("Mark(a)")
         self.mark_btn.clicked.connect(self.mark_btn_clicked)
         bottom_layout.addWidget(self.mark_btn)
 
-        self.save_btn = QPushButton("Save(s)")
+        self.save_btn: QPushButton = QPushButton("Save(s)")
         self.save_btn.clicked.connect(self.save_btn_clicked)
         bottom_layout.addWidget(self.save_btn)
 
-        self.rename_btn = QPushButton("Rename(r)")
+        self.rename_btn: QPushButton = QPushButton("Rename(r)")
         self.rename_btn.clicked.connect(self.rename_btn_clicked)
         bottom_layout.addWidget(self.rename_btn)
 
-        self.open_file = QPushButton("Open(o)")
+        self.open_file: QPushButton = QPushButton("Open(o)")
         self.open_file.clicked.connect(self.btn_openfile)
         bottom_layout.addWidget(self.open_file)
 
-        self.count_bar = QLineEdit()
+        self.count_bar: QLineEdit = QLineEdit()
         bottom_layout.addWidget(self.count_bar)
 
-        self.count_btn = QPushButton("Count(c)")
+        self.count_btn: QPushButton = QPushButton("Count(c)")
         self.count_btn.clicked.connect(self.count_btn_clicked)
         bottom_layout.addWidget(self.count_btn)
 
-        self.export_btn = QPushButton("Export")
+        self.export_btn: QPushButton = QPushButton("Export")
         bottom_layout.addWidget(self.export_btn)
 
         widget.setLayout(main_layout)
@@ -86,23 +87,23 @@ class MainWindow(QMainWindow):
         self.setGeometry(0, 0, 800, 600)
         self.setCentralWidget(widget)
 
-        self.thread_pool = QThreadPool()
-        self.mutex = QMutex()
-        self.filter_parser = FilterParser()
+        self.thread_pool: QThreadPool = QThreadPool()
+        self.mutex: QMutex = QMutex()
+        self.filter_parser: FilterParser= FilterParser()
 
         self.shortcuts()
 
         if initial_path:
             self._load_files(initial_path)
 
-    def shortcuts(self):
+    def shortcuts(self) -> None:
         QShortcut(QKeySequence("o"), self, self.btn_openfile)
         QShortcut(QKeySequence("s"), self, self.save_btn_clicked)
         QShortcut(QKeySequence("a"), self, self.mark_btn_clicked)
         QShortcut(QKeySequence("r"), self, self.rename_btn_clicked)
         QShortcut(QKeySequence("c"), self, self.count_btn_clicked)
 
-        self.search_slot = QuickSearchSlot()
+        self.search_slot: QuickSearchSlot = QuickSearchSlot()
 
         slot_apply = lambda i: self.filter_apply(self.search_slot.get_slot(i), True)
         slot_set = lambda i: self.search_slot.set_slot(i, self.search_bar.text())
@@ -110,38 +111,38 @@ class MainWindow(QMainWindow):
             QShortcut(i, self, partial(slot_apply, i))
             QShortcut(QKeySequence(f"Ctrl+{i}"), self, partial(slot_set, i))
 
-    def rule_edit_btn_clicked(self):
-        self.rule_window = RuleEditWindow(main_window=self)
+    def rule_edit_btn_clicked(self) -> None:
+        self.rule_window: RuleEditWindow = RuleEditWindow(main_window=self)
         self.export_btn.clicked.connect(self.rule_window.export_btn_clicked)
         self.rule_window.show()
 
-    def rename_btn_clicked(self):
+    def rename_btn_clicked(self) -> None:
         if not hasattr(self, "scene"):
             return
-        items = self.scene.selectedItems()
+        items: List[QGraphicsItem] = self.scene.selectedItems()
         if len(items) == 0:
             self.status_bar.showMessage("No item selected")
             return
-        new_label, ok = QInputDialog.getText(self, "Rename", "New Label:")
+        new_label, ok = QInputDialog.getText(self, "Rename", "New Label:") # type:ignore
         if not ok:
             return
 
         for i in items:
             i.rename(new_label)
 
-    def save_btn_clicked(self):
-        mod_files_num = len([i for i in self.lens if i.modified])
+    def save_btn_clicked(self)-> None:
+        mod_files_num: int = len([i for i in self.lens if i.modified])
         for i in self.lens:
             i.save()
         self.status_bar.showMessage(f"Saved {mod_files_num} changes")
 
-    def mark_btn_clicked(self):
+    def mark_btn_clicked(self) -> None:
         if not hasattr(self, "scene"):
             return
-        items = self.scene.selectedItems()
-        mark_state = [i.mark_toggle() for i in items]
-        marked = len([x for x in mark_state if x])
-        unmarked = len([x for x in mark_state if not x])
+        items: List[QGraphicsItem] = self.scene.selectedItems()
+        mark_state: List[QGraphicsItem] = [i.mark_toggle() for i in items]
+        marked: int = len([x for x in mark_state if x])
+        unmarked: int = len([x for x in mark_state if not x])
         message = ""
         if marked > 0:
             message += f"Marked {marked} items. "
@@ -150,8 +151,8 @@ class MainWindow(QMainWindow):
 
         self.status_bar.showMessage(message)
 
-    def filter_apply(self, query, search_bar_update=False):
-        d_list = self.filter_parser.parse(query, self.defects)
+    def filter_apply(self, query:str, search_bar_update=False)-> None:
+        d_list: List[Defect] = self.filter_parser.parse(query, self.defects)
         self.view_update(d_list)
         self.status_bar.showMessage(
             f"Filter: {self.search_bar.text()}, Total: {len(d_list)}"
@@ -160,7 +161,7 @@ class MainWindow(QMainWindow):
             self.search_bar.setText(query)
 
     def _load_files(self, path: str) -> None:
-        xml_files = [x for x in Path(path).glob("**/*.xml") if x.is_file()]
+        xml_files: List[Path] = [x for x in Path(path).glob("**/*.xml") if x.is_file()]
 
         def find_jpeg(xml_file):
             if (jpeg_file := xml_file.with_suffix(".jpeg")).is_file():
@@ -176,20 +177,20 @@ class MainWindow(QMainWindow):
 
         parms = [(x, find_jpeg(x)) for x in xml_files if find_jpeg(x)]
 
-        self.lens = []
-        self.total_file = len(parms)
+        self.lens: List[Any] = []
+        self.total_file: int = len(parms)
         self.processed_file = 0
         for f, j in parms:
-            w = Worker(Lens, f, j)
+            w:Worker = Worker(Lens, f, j)
             w.signals.result.connect(self.worker_done)
             self.thread_pool.start(w)
 
-    def btn_openfile(self):
-        file_path = QFileDialog.getExistingDirectory()
+    def btn_openfile(self) -> None:
+        file_path:str = QFileDialog.getExistingDirectory()
         self._load_files(file_path)
 
 
-    def worker_done(self, lz):
+    def worker_done(self, lz:object) -> None:
         self.mutex.lock()
         self.lens.append(lz)
         self.processed_file += 1
@@ -205,20 +206,20 @@ class MainWindow(QMainWindow):
             )
             self.view_update(self.defects)
             complete_candidates = list(set([d.name for d in self.defects]))
-            completer = QCompleter(complete_candidates)
+            completer: QCompleter = QCompleter(complete_candidates)
             self.search_bar.setCompleter(completer)
             self.status_bar.showMessage(
                 f"No Filter, Category: {len(complete_candidates)},Total: {len(self.defects)}"
             )
 
-    def view_update(self, d_list):
-        g_layout = QGraphicsGridLayout()
+    def view_update(self, d_list:List) -> None:
+        g_layout : QGraphicsGridLayout = QGraphicsGridLayout()
         g_layout.setContentsMargins(10, 10, 10, 10)
         g_layout.setSpacing(25)
-        g_widget = QGraphicsWidget()
+        g_widget: QGraphicsWidget = QGraphicsWidget()
         self.scene.clear()
         # dynamic column size, dependents on window width
-        col_size = int(self.frameGeometry().width() / 80)
+        col_size:int = int(self.frameGeometry().width() / 80)
         for i, di in enumerate([DefectItem(d).get_layout_item() for d in d_list]):
             r = int(i / col_size)
             c = i % col_size
@@ -227,17 +228,17 @@ class MainWindow(QMainWindow):
         self.scene.addItem(g_widget)
         self.main_view.centerOn(self.scene.itemsBoundingRect().center())
 
-    def count_btn_clicked(self):
-        text = self.count_bar.text()
-        li = ["0", "1", "2", "3", "4"]
-        nums = []
-        names = []
-        w = []
-        h = []
-        regions = []
-        recs = []
-        lnames = []
-        wb = Workbook()
+    def count_btn_clicked(self) -> None:
+        text: str = self.count_bar.text()
+        li:List[str] = ["0", "1", "2", "3", "4"]
+        nums: List[Any] = []
+        names: List[Any] = []
+        w: List[Any] = []
+        h: List[Any] = []
+        regions:List[Any] = []
+        recs: List[Any] = []
+        lnames: List[Any] = []
+        wb: Workbook = Workbook()
         ws = wb.active
         ws.title = "sheet"
         ws.append(["编号", "类名", "宽度", "高度", "区域", "是否可收", "左通道对应"])
@@ -269,12 +270,12 @@ class MainWindow(QMainWindow):
                 else:
                     region = "D"
                 regions.append(region)
-                ln = []
-                for i in li:
+                ln:List[Any] = []
+                for n in li:
                     if d.name[0] == "0" or d.name[0] == "1":
-                        a = self.left_check(d, i)
+                        a = self.left_check(d, n)
                     else:
-                        a = self.line_check(d, i)
+                        a = self.line_check(d, n)
                         if a:
                             ln.append(a)
                 lnames.append(str(ln))
@@ -288,24 +289,24 @@ class MainWindow(QMainWindow):
             ws.cell(i + 2, 7, lnames[i])
         wb.save(f"{text}.xlsx")
 
-    def left_check(self, d, sexp):
+    def left_check(self, d, sexp) -> Union[str,bool]:
         fn = xymapping(d.x, d.y)
-        mappings = [d_.name for d_ in d.lens.left if fn(d_.x, d_.y)]
+        mappings: List[str] =[d_.name for d_ in d.lens.left if fn(d_.x, d_.y)] 
         for name in mappings:
             if name.endswith(sexp):
                 return name
-        return False
+        return False 
 
-    def line_check(self, d, sexp):
+    def line_check(self, d, sexp) -> Union[str,bool]:
         fn = linemapping(d.x, d.y, d.x_, d.y_)
-        mappings = [d_.name for d_ in d.lens.left if fn(d_.x, d_.y, d_.x_, d_.y_)]
+        mappings:List[str] = [d_.name for d_ in d.lens.left if fn(d_.x, d_.y, d_.x_, d_.y_)]
         for name in mappings:
             if name.endswith(sexp):
                 return name
         return False
 
-    def closeEvent(self, event) -> None:
-        reply = QMessageBox.question(
+    def closeEvent(self, event:QCloseEvent) -> None:
+        reply: int = QMessageBox.question(
             self, "提示", "是否关闭所有窗口", QMessageBox.Yes | QMessageBox.No, QMessageBox.No
         )
         if reply == QMessageBox.Yes:
@@ -315,10 +316,10 @@ class MainWindow(QMainWindow):
             event.ignore()
 
 
-def main():
+def main()-> None:
     root_config("~/.lens_editor")
-    app = QApplication(sys.argv)
-    initial_path = sys.argv[1] if len(sys.argv) > 1 else ""
-    window = MainWindow(initial_path)
+    app: QApplication = QApplication(sys.argv)
+    initial_path:str = sys.argv[1] if len(sys.argv) > 1 else ""
+    window: MainWindow = MainWindow(initial_path)
     window.show()
     app.exec()
