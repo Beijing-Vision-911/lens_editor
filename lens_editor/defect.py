@@ -272,7 +272,7 @@ class complex(QGraphicsView):
                 self.defect.xmax - self.defect.xmin,
                 self.defect.ymax - self.defect.ymin-2,
             )
-            self.defect.ymax-=2
+            self.defect.ymax-=1
 
         if QKeyEvent.key() == QtCore.Qt.Key_K and QKeyEvent.modifiers() == QtCore.Qt.ShiftModifier:
             self.rect_item.setRect(
@@ -282,7 +282,7 @@ class complex(QGraphicsView):
                 self.defect.xmax - self.defect.xmin,
                 self.defect.ymax - self.defect.ymin+2,
             )
-            self.defect.ymax+=2
+            self.defect.ymax+=1
 
         if QKeyEvent.key() == QtCore.Qt.Key_J and QKeyEvent.modifiers() == QtCore.Qt.ShiftModifier:
             self.rect_item.setRect(
@@ -292,7 +292,7 @@ class complex(QGraphicsView):
                 self.defect.xmax - self.defect.xmin-2,
                 self.defect.ymax - self.defect.ymin,
             )
-            self.defect.xmax-=2
+            self.defect.xmax-=1
 
         if QKeyEvent.key() == QtCore.Qt.Key_L and QKeyEvent.modifiers() == QtCore.Qt.ShiftModifier:
             self.rect_item.setRect(
@@ -302,7 +302,7 @@ class complex(QGraphicsView):
                 self.defect.xmax - self.defect.xmin+2,
                 self.defect.ymax - self.defect.ymin,
             )
-            self.defect.xmax+=2
+            self.defect.xmax+=1
             
 
 
@@ -314,24 +314,24 @@ class complex(QGraphicsView):
         if QKeyEvent.key() == Qt.Key_B:
             return self.keyPressEvent3(QKeyEvent)
         if QKeyEvent.key() == Qt.Key_Up:
-            self.rect_item.moveBy(0, -5)
-            self.rect_key_y += -5
-            self.rect_key += QPoint(0, -5)
+            self.rect_item.moveBy(0, -1)
+            self.rect_key_y += -1
+            self.rect_key += QPoint(0, -1)
 
         if QKeyEvent.key() == Qt.Key_Down:
-            self.rect_item.moveBy(0, 5)
-            self.rect_key += QPoint(0, 5)
-            self.rect_key_y += 5
+            self.rect_item.moveBy(0, 1)
+            self.rect_key += QPoint(0, 1)
+            self.rect_key_y += 1
 
         if QKeyEvent.key() == Qt.Key_Left:
-            self.rect_item.moveBy(-5, 0)
-            self.rect_key += QPoint(-5, 0)
-            self.rect_key_x += -5
+            self.rect_item.moveBy(-1, 0)
+            self.rect_key += QPoint(-1, 0)
+            self.rect_key_x += -1
 
         if QKeyEvent.key() == Qt.Key_Right:
-            self.rect_item.moveBy(5, 0)
-            self.rect_key += QPoint(5, 0)
-            self.rect_key_x += 5
+            self.rect_item.moveBy(1, 0)
+            self.rect_key += QPoint(1, 0)
+            self.rect_key_x += 1
 
     def keyPressEvent2(self, QKeyEvent):
 
