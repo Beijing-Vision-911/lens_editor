@@ -263,7 +263,52 @@ class complex(QGraphicsView):
         elif event.angleDelta().y() < 0:
             self.scale(1 / 1.5, 1 / 1.5)
 
+    def shmove(self,QKeyEvent):
+        if QKeyEvent.key() == QtCore.Qt.Key_I and QKeyEvent.modifiers() == QtCore.Qt.ShiftModifier:
+            self.rect_item.setRect(
+
+                self.defect.xmin ,
+                self.defect.ymin ,
+                self.defect.xmax - self.defect.xmin,
+                self.defect.ymax - self.defect.ymin-2,
+            )
+            self.defect.ymax-=2
+
+        if QKeyEvent.key() == QtCore.Qt.Key_K and QKeyEvent.modifiers() == QtCore.Qt.ShiftModifier:
+            self.rect_item.setRect(
+
+                self.defect.xmin ,
+                self.defect.ymin ,
+                self.defect.xmax - self.defect.xmin,
+                self.defect.ymax - self.defect.ymin+2,
+            )
+            self.defect.ymax+=2
+
+        if QKeyEvent.key() == QtCore.Qt.Key_J and QKeyEvent.modifiers() == QtCore.Qt.ShiftModifier:
+            self.rect_item.setRect(
+
+                self.defect.xmin ,
+                self.defect.ymin ,
+                self.defect.xmax - self.defect.xmin-2,
+                self.defect.ymax - self.defect.ymin,
+            )
+            self.defect.xmax-=2
+
+        if QKeyEvent.key() == QtCore.Qt.Key_L and QKeyEvent.modifiers() == QtCore.Qt.ShiftModifier:
+            self.rect_item.setRect(
+
+                self.defect.xmin ,
+                self.defect.ymin ,
+                self.defect.xmax - self.defect.xmin+2,
+                self.defect.ymax - self.defect.ymin,
+            )
+            self.defect.xmax+=2
+            
+
+
     def keyPressEvent(self, QKeyEvent):
+        self.shmove(QKeyEvent)
+        
         if QKeyEvent.key() == Qt.Key_S:  # =s时，保存矩形坐标至xml
             return self.keyPressEvent2(QKeyEvent)
         if QKeyEvent.key() == Qt.Key_B:
