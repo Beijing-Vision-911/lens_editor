@@ -317,7 +317,7 @@ class complex(QGraphicsView):
             self.rect_item.moveBy(0, -1)
             self.defect.ymin += -1
             self.defect.ymax += -1
-            self.rect_key += QPoint(0, -1)
+            self.rect_key_y += -1
 
         if QKeyEvent.key() == Qt.Key_Down:
             self.rect_item.moveBy(0, 1)
@@ -336,7 +336,6 @@ class complex(QGraphicsView):
             self.rect_key += QPoint(1, 0)
             self.defect.xmin+= 1
             self.defect.xmax+= 1
-
 
     def keyPressEvent2(self, QKeyEvent):
 
