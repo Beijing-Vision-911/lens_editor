@@ -270,7 +270,7 @@ class complex(QGraphicsView):
                 self.defect.xmin ,
                 self.defect.ymin ,
                 self.defect.xmax - self.defect.xmin,
-                self.defect.ymax - self.defect.ymin-2,
+                self.defect.ymax - self.defect.ymin-1,
             )
             self.defect.ymax-=1
 
@@ -280,7 +280,7 @@ class complex(QGraphicsView):
                 self.defect.xmin ,
                 self.defect.ymin ,
                 self.defect.xmax - self.defect.xmin,
-                self.defect.ymax - self.defect.ymin+2,
+                self.defect.ymax - self.defect.ymin+1,
             )
             self.defect.ymax+=1
 
@@ -289,7 +289,7 @@ class complex(QGraphicsView):
 
                 self.defect.xmin ,
                 self.defect.ymin ,
-                self.defect.xmax - self.defect.xmin-2,
+                self.defect.xmax - self.defect.xmin-1,
                 self.defect.ymax - self.defect.ymin,
             )
             self.defect.xmax-=1
@@ -299,7 +299,7 @@ class complex(QGraphicsView):
 
                 self.defect.xmin ,
                 self.defect.ymin ,
-                self.defect.xmax - self.defect.xmin+2,
+                self.defect.xmax - self.defect.xmin+1,
                 self.defect.ymax - self.defect.ymin,
             )
             self.defect.xmax+=1
