@@ -315,37 +315,42 @@ class complex(QGraphicsView):
             return self.keyPressEvent3(QKeyEvent)
         if QKeyEvent.key() == Qt.Key_Up:
             self.rect_item.moveBy(0, -1)
-            self.rect_key_y += -1
+            self.defect.ymin += -1
+            self.defect.ymax += -1
             self.rect_key += QPoint(0, -1)
 
         if QKeyEvent.key() == Qt.Key_Down:
             self.rect_item.moveBy(0, 1)
             self.rect_key += QPoint(0, 1)
-            self.rect_key_y += 1
+            self.defect.ymin += 1
+            self.defect.ymax += 1
 
         if QKeyEvent.key() == Qt.Key_Left:
             self.rect_item.moveBy(-1, 0)
             self.rect_key += QPoint(-1, 0)
-            self.rect_key_x += -1
+            self.defect.xmin+= -1
+            self.defect.xmax+=-1
 
         if QKeyEvent.key() == Qt.Key_Right:
             self.rect_item.moveBy(1, 0)
             self.rect_key += QPoint(1, 0)
-            self.rect_key_x += 1
+            self.defect.xmin+= 1
+            self.defect.xmax+= 1
+
 
     def keyPressEvent2(self, QKeyEvent):
 
         xmin = self.defect._obj.find("bndbox/xmin")
-        xmin.text = f"{self.defect.xmin+self.rect_key_x}"
+        xmin.text = f"{self.defect.xmin}"
 
         xmax = self.defect._obj.find("bndbox/xmax")
-        xmax.text = f"{self.defect.xmin+self.rectitemsize_x}"
+        xmax.text = f"{self.defect.xmax}"
 
         ymin = self.defect._obj.find("bndbox/ymin")
-        ymin.text = f"{self.defect.ymin+self.rect_key_y}"
+        ymin.text = f"{self.defect.ymin}"
 
         ymax = self.defect._obj.find("bndbox/ymax")
-        ymax.text = f"{self.defect.ymin+self.rectitemsize_y}"
+        ymax.text = f"{self.defect.ymax}"
 
         self.defect.lens.tree.write(str(self.defect.lens.xml_path))
         logger.info("Successful")
