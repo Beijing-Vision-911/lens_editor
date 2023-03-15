@@ -156,6 +156,7 @@ class complex(QGraphicsView):
         self.scene1 = QGraphicsScene()
         self.item = QGraphicsPixmapItem()
         self.defect = defect
+        self.ll = True
         self.resize(1300, 1400)
         self.singleOffset = QPoint(0, 0)
         self.isLeftPressed = bool(False)  # 图片被点住(鼠标左键)标志位
@@ -264,7 +265,7 @@ class complex(QGraphicsView):
             self.scale(1 / 1.5, 1 / 1.5)
 
     def shmove(self,QKeyEvent):
-        if QKeyEvent.key() == QtCore.Qt.Key_I and QKeyEvent.modifiers() == QtCore.Qt.ShiftModifier:
+        if QKeyEvent.key() == QtCore.Qt.Key_Up and QKeyEvent.modifiers() == QtCore.Qt.ShiftModifier:
             self.rect_item.setRect(
 
                 self.defect.xmin ,
@@ -274,7 +275,7 @@ class complex(QGraphicsView):
             )
             self.defect.ymax-=1
 
-        if QKeyEvent.key() == QtCore.Qt.Key_K and QKeyEvent.modifiers() == QtCore.Qt.ShiftModifier:
+        if QKeyEvent.key() == QtCore.Qt.Key_Down and QKeyEvent.modifiers() == QtCore.Qt.ShiftModifier:
             self.rect_item.setRect(
 
                 self.defect.xmin ,
@@ -284,7 +285,7 @@ class complex(QGraphicsView):
             )
             self.defect.ymax+=1
 
-        if QKeyEvent.key() == QtCore.Qt.Key_J and QKeyEvent.modifiers() == QtCore.Qt.ShiftModifier:
+        if QKeyEvent.key() == QtCore.Qt.Key_Left and QKeyEvent.modifiers() == QtCore.Qt.ShiftModifier:
             self.rect_item.setRect(
 
                 self.defect.xmin ,
@@ -294,7 +295,7 @@ class complex(QGraphicsView):
             )
             self.defect.xmax-=1
 
-        if QKeyEvent.key() == QtCore.Qt.Key_L and QKeyEvent.modifiers() == QtCore.Qt.ShiftModifier:
+        if QKeyEvent.key() == QtCore.Qt.Key_Right and QKeyEvent.modifiers() == QtCore.Qt.ShiftModifier:
             self.rect_item.setRect(
 
                 self.defect.xmin ,
@@ -307,35 +308,36 @@ class complex(QGraphicsView):
 
 
     def keyPressEvent(self, QKeyEvent):
-        self.shmove(QKeyEvent)
+        if QKeyEvent.modifiers() == QtCore.Qt.ShiftModifier:
+            self.shmove(QKeyEvent)
+            self.ll = False
+        else:
+            self.ll = True
         
-        if QKeyEvent.key() == Qt.Key_S:  # =s时，保存矩形坐标至xml
+        if QKeyEvent.key() == Qt.Key_S and QKeyEvent.modifiers() == Qt.ControlModifier:  # =s时，保存矩形坐标至xml
             return self.keyPressEvent2(QKeyEvent)
         if QKeyEvent.key() == Qt.Key_B:
             return self.keyPressEvent3(QKeyEvent)
-        if QKeyEvent.key() == Qt.Key_Up:
-            self.rect_item.moveBy(0, -1)
-            self.rect_key += QPoint(0, -1)
-            self.defect.ymin += -1
-            self.defect.ymax += -1   
+        
+        if self.ll == True:
+            if QKeyEvent.key() == Qt.Key_Up:
+                self.rect_item.moveBy(0, -1)
+                self.rect_key += QPoint(0, -1)
 
-        if QKeyEvent.key() == Qt.Key_Down:
-            self.rect_item.moveBy(0, 1)
-            self.rect_key += QPoint(0, 1)
-            self.defect.ymin += 1
-            self.defect.ymax += 1
 
-        if QKeyEvent.key() == Qt.Key_Left:
-            self.rect_item.moveBy(-1, 0)
-            self.rect_key += QPoint(-1, 0)
-            self.defect.xmin+= -1
-            self.defect.xmax+=-1
+            if QKeyEvent.key() == Qt.Key_Down:
+                self.rect_item.moveBy(0, 1)
+                self.rect_key += QPoint(0, 1)
 
-        if QKeyEvent.key() == Qt.Key_Right:
-            self.rect_item.moveBy(1, 0)
-            self.rect_key += QPoint(1, 0)
-            self.defect.xmin+= 1
-            self.defect.xmax+= 1
+            if QKeyEvent.key() == Qt.Key_Left:
+                self.rect_item.moveBy(-1, 0)
+                self.rect_key += QPoint(-1, 0)
+
+
+            if QKeyEvent.key() == Qt.Key_Right:
+                self.rect_item.moveBy(1, 0)
+                self.rect_key += QPoint(1, 0)
+
 
     def keyPressEvent2(self, QKeyEvent):
 
