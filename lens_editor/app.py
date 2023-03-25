@@ -81,6 +81,10 @@ class MainWindow(QMainWindow):
         self.export_btn = QPushButton("Export")
         bottom_layout.addWidget(self.export_btn)
 
+        self.delete_btn = QPushButton("Delete")
+        self.delete_btn.clicked.connect(self.delete)
+        bottom_layout.addWidget(self.delete_btn)
+
         widget.setLayout(main_layout)
         self.setWindowTitle("Lens Editor")
         self.setGeometry(0, 0, 800, 600)
@@ -109,6 +113,24 @@ class MainWindow(QMainWindow):
         for i in map(str, range(1, 9)):
             QShortcut(i, self, partial(slot_apply, i))
             QShortcut(QKeySequence(f"Ctrl+{i}"), self, partial(slot_set, i))
+
+
+
+    def delete(self):
+        if not hasattr(self, "scene"):
+            return
+        items = self.scene.selectedItems()
+        if len(items) == 0:
+            self.status_bar.showMessage("No item selected")
+            return
+        else:
+            for i in items:
+                i.delete_xml()
+            self.status_bar.showMessage(" Delete succeeded  ")
+            
+        
+
+
 
     def rule_edit_btn_clicked(self):
         self.rule_window = RuleEditWindow(main_window=self)

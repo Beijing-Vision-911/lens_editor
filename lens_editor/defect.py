@@ -3,9 +3,9 @@ from pathlib import Path
 
 import cv2
 import sys
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtWidgets,QtGui
 from PySide6.QtCore import QPoint, Qt
-from PySide6.QtGui import QBrush, QColor, QCursor, QPixmap
+from PySide6.QtGui import QBrush, QColor, QCursor, QPixmap,QPen
 from PySide6.QtWidgets import (QGraphicsItem, QGraphicsItemGroup,
                                QGraphicsLayoutItem, QGraphicsPixmapItem,
                                QGraphicsScene, QGraphicsSimpleTextItem,
@@ -90,6 +90,7 @@ class Defect:
     def remove(self):
         self.lens.set_modified(True)
         self.lens.tree.getroot().remove(self._obj)
+        self.lens.tree.write(self.lens.xml_path)
 
     def mark_toggle(self) -> bool:
         "return current mark state"
@@ -140,6 +141,7 @@ class DefectEdit(QWidget, Lens, Defect):
         layout.addWidget(label_height_field, 5, 1)
         layout.addWidget(self.test_button, 6, 1)
         layout.addWidget(self.label_map, 7, 0, 1, 2)
+        
 
     def _minimap(self) -> QPixmap:
         minimap = Minimap(self.defect, self.defects, self.width())
@@ -182,9 +184,9 @@ class complex(QGraphicsView):
         self.item.setPixmap(self.pixmap1)
         self.scene1.addItem(self.item)
         self.setScene(self.scene1)
-        self.fitInView(self.defect.xmax - 50, self.defect.ymin - 50, 200, 200)
+        self.fitInView(self.defect.xmax - 18, self.defect.ymin - 18, 80, 80)
         self.rect_item = QtWidgets.QGraphicsRectItem()
-        self.rect_item1 = QtWidgets.QGraphicsRectItem()
+        self.rect_item1 = QtWidgets.QGraphicsRectItem()            #左右通道的对应框
         if self.defect.name[0] == "1" or self.defect.name[0] == "0":
             self.xymapping(self.defect.xmin, self.defect.ymin)
         else:
@@ -200,9 +202,27 @@ class complex(QGraphicsView):
             self.defect.xmax - self.defect.xmin,
             self.defect.ymax - self.defect.ymin,
         )
+
+        r,g,b = self.color_rect(self.rect_item)
+        pen = QPen(QColor(r,g,b))
+        self.rect_item.setPen(pen)
+
+
         self.rect_item.setFlag(QGraphicsItem.ItemIsFocusable, False)
         self.scene1.addItem(self.rect_item)
         self.scene1.addItem(self.rect_item1)
+
+    def color_rect(self,rect_item):
+        rect = QtCore.QRect(self.defect.xmin + self.rect_key_x,
+                            self.defect.ymin + self.rect_key_y,
+                            self.defect.xmax - self.defect.xmin,
+                            self.defect.ymax - self.defect.ymin,) # 指定区域
+    
+        image = self.pixmap1.toImage()
+        color = QtGui.QColor(image.pixel(rect.x(), rect.y())) # 获取像素颜色
+        print(color.red(), color.green(), color.blue()) # 打印
+        return 255-color.red(),255-color.green(), 255-color.blue()
+        
 
     def xymapping(self, x, y) -> bool:
         # 第一象限 > 第三
@@ -522,6 +542,11 @@ w: {self.defect.width}"""
             self.defect_edit = DefectEdit(self.defect)
             DefectEdit(self.defect)
             self.defect_edit.show()
+        if event.button() == Qt.RightButton:
+            self.defect_edit = DefectEdit(self.defect)
+            DefectEdit(self.defect)
+            self.defect_edit.edit()
+
 
     def mark_toggle(self) -> bool:
         if state := self.defect.mark_toggle():
@@ -533,6 +558,9 @@ w: {self.defect.width}"""
     def rename(self, name):
         self.defect.name = name
         self.label.setText(name)
+
+    def delete_xml(self):
+        self.defect.remove()
 
     def itemChange(self, change, value):
         if change == QGraphicsItem.ItemSelectedChange:
