@@ -12,25 +12,25 @@ class FilterParser:
         if filter_str == "":
             return d_list
         if filter_str not in ["72","70","75"]:
-            self.qy = self.some("72")
+            self.area = self.some("72")
         else:
-            self.qy = self.some(filter_str[:2])
+            self.area = self.some(filter_str[:2])
 
             
 
         if filter_str == "A":
             for i in d_list:
-                if (i.x>self.qy[0] and i.x<self.qy[1]) or (i.x>self.qy[2] and i.x<self.qy[3]):
+                if (i.x>self.area[0] and i.x<self.area[1]) or (i.x>self.area[2] and i.x<self.area[3]):
                     new_list.append(i)
             return new_list
         elif filter_str == "B":
             for i in d_list:
-                if (i.x>self.qy[4] and i.x<self.qy[5]) or (i.x>self.qy[6] and i.x<self.qy[7]):
+                if (i.x>self.area[4] and i.x<self.area[5]) or (i.x>self.area[6] and i.x<self.area[7]):
                     new_list.append(i)
             return new_list
         elif filter_str == "C":
             for i in d_list:
-                if (i.x>self.qy[8] and i.x<self.qy[9]) or (i.x>self.qy[10] and i.x<self.qy[11]):
+                if (i.x>self.area[8] and i.x<self.area[9]) or (i.x>self.area[10] and i.x<self.area[11]):
                     new_list.append(i)
             return new_list
         for f in filter_str.split(" "):
@@ -51,10 +51,10 @@ class FilterParser:
             defect = filter_cmd.split("name=")[1]
             if "-" in defect:
                 defect_name = defect.split("-")[0]
-                defect_qy = defect.split("-")[1]
-                qqy = self.qy_choice(defect_qy)
+                defect_area = defect.split("-")[1]
+                Subdivision_area = self.qy_choice(defect_area)
                 for i in d_list:
-                    if i.name == defect_name and ((i.x>qqy[0] and i.x<qqy[1]) or (i.x>qqy[2] and i.x<qqy[3])):
+                    if i.name == defect_name and ((i.x>Subdivision_area[0] and i.x<Subdivision_area[1]) or (i.x>Subdivision_area[2] and i.x<Subdivision_area[3])):
                         new_list.append(i)
                 return new_list
 
@@ -84,13 +84,13 @@ class FilterParser:
             return list(filter(f_func, d_list))
         return d_list
 
-    def qy_choice(self,qy):
-        if qy == "A":
-            return self.qy[0:4]
-        elif qy =="B":
-            return self.qy[4:8]
-        elif qy=="C":
-            return self.qy[8:]
+    def qy_choice(self,area):
+        if area == "A":
+            return self.area[0:4]
+        elif area =="B":
+            return self.area[4:8]
+        elif area=="C":
+            return self.area[8:]
 
 class QuickSearchSlot:
     def __init__(self):
