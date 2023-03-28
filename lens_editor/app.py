@@ -212,9 +212,8 @@ class MainWindow(QMainWindow):
             self.thread_pool.start(w)
 
     def btn_openfile(self):
-        # self.file_path = QFileDialog.getExistingDirectory()
-        self.file_path = "/home/user/H1/1203_xml/不合格"
-        self._load_files(self.file_path)
+        file_path = QFileDialog.getExistingDirectory()
+        self._load_files(file_path)
 
 
     def worker_done(self, lz):
