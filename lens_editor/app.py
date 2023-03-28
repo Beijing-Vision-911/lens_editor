@@ -128,7 +128,7 @@ class MainWindow(QMainWindow):
                 i.delete_xml()
             self.status_bar.showMessage(" Delete succeeded  ")
             
-        
+        self._load_files(self.file_path)
 
 
 
@@ -173,6 +173,11 @@ class MainWindow(QMainWindow):
         self.status_bar.showMessage(message)
 
     def filter_apply(self, query, search_bar_update=False):
+
+        if query =="A":
+            print("1")
+        # elif query[-1] == "A":
+        #     pass
         d_list = self.filter_parser.parse(query, self.defects)
         self.view_update(d_list)
         self.status_bar.showMessage(
@@ -207,8 +212,9 @@ class MainWindow(QMainWindow):
             self.thread_pool.start(w)
 
     def btn_openfile(self):
-        file_path = QFileDialog.getExistingDirectory()
-        self._load_files(file_path)
+        # self.file_path = QFileDialog.getExistingDirectory()
+        self.file_path = "/home/user/H1/1203_xml/不合格"
+        self._load_files(self.file_path)
 
 
     def worker_done(self, lz):
