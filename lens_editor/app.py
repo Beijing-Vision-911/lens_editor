@@ -128,7 +128,6 @@ class MainWindow(QMainWindow):
                 i.delete_xml()
             self.status_bar.showMessage(" Delete succeeded  ")
             
-        self._load_files(self.file_path)
 
 
 
