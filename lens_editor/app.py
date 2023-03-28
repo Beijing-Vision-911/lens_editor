@@ -87,7 +87,7 @@ class MainWindow(QMainWindow):
 
         widget.setLayout(main_layout)
         self.setWindowTitle("Lens Editor")
-        self.setGeometry(0, 0, 800, 600)
+        self.setGeometry(0, 0, 1000, 800)
         self.setCentralWidget(widget)
 
         self.thread_pool = QThreadPool()

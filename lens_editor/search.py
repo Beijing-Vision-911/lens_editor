@@ -11,41 +11,59 @@ class FilterParser:
         new_list = []
         if filter_str == "":
             return d_list
+        if filter_str not in ["72","70","75"]:
+            self.area = self.some("72")
+        else:
+            self.area = self.some(filter_str[:2])
+
+            
+
         if filter_str == "A":
             for i in d_list:
-                if (i.x>120 and i.x<535) or (i.x>1330 and i.x<1710):
+                if (i.x>self.area[0] and i.x<self.area[1]) or (i.x>self.area[2] and i.x<self.area[3]):
                     new_list.append(i)
             return new_list
         elif filter_str == "B":
             for i in d_list:
-                if (i.x>536 and i.x<815) or (i.x>1711 and i.x<1960):
+                if (i.x>self.area[4] and i.x<self.area[5]) or (i.x>self.area[6] and i.x<self.area[7]):
                     new_list.append(i)
             return new_list
         elif filter_str == "C":
             for i in d_list:
-                if (i.x>816 and i.x<1085) or (i.x>1961 and i.x<2215):
+                if (i.x>self.area[8] and i.x<self.area[9]) or (i.x>self.area[10] and i.x<self.area[11]):
                     new_list.append(i)
             return new_list
         for f in filter_str.split(" "):
             d_list = self._parse_filter(f, d_list)
         return d_list
 
+    def some(self,mm):
+        if mm =="70":
+            return [120,535,1330,1710,536,815,1711,1960,816,1060,1961,2185]
+        elif mm == "72":
+            return [120,535,1330,1710,536,815,1711,1960,816,1085,1961,2215]
+        elif mm == "75":
+            return [120,535,1330,1710,536,815,1711,1960,816,1135,1961,2240]
+
     def _parse_filter(self, filter_cmd: str, d_list: List[Defect]) -> List[Defect]:
+        new_list = []
         if "name=" in filter_cmd:
-            new_list= []
-            filter_cmd1 = filter_cmd[5:]        #需要筛选出来的信息
-            if len(filter_cmd1) == 5:
-                filter_cmd3 = filter_cmd[5:-1]    #名称
-                filter_cmd2 = filter_cmd1[-1]      #区域
-                print(filter_cmd3)
-                z1,z2,z3,z4 = self.qy_choice(filter_cmd2)
+            defect = filter_cmd.split("name=")[1]
+            if "-" in defect:
+                defect_name = defect.split("-")[0]
+                defect_area = defect.split("-")[1]
+                Subdivision_area = self.qy_choice(defect_area)
                 for i in d_list:
-                    if i.name == filter_cmd3 and ((i.x>int(z1) and i.x<int(z2)) or (i.x>int(z3) and i.x<int(z4))):
+                    if i.name == defect_name and ((i.x>Subdivision_area[0] and i.x<Subdivision_area[1]) or (i.x>Subdivision_area[2] and i.x<Subdivision_area[3])):
                         new_list.append(i)
                 return new_list
+
             else:
-                name = filter_cmd1
-                return list(filter(lambda d: d.name in name, d_list))
+                defect_name = defect
+                for i in d_list:
+                    if i.name == defect_name:
+                        new_list.append(i)
+                return new_list
             
         if filter_cmd.startswith("-mark"):
             return list(filter(lambda d: not d.mark, d_list))
@@ -64,18 +82,15 @@ class FilterParser:
         if (f := filter_cmd[0]) in "xyhw" and filter_cmd[1] in "=<>":
             f_func = eval(f"lambda d: d.{f} {filter_cmd[1]} {filter_cmd[2:]}")
             return list(filter(f_func, d_list))
-        if filter_cmd.endswith == "A":
-            return list(filter(lambda d: ((d.x>120 and d.x<535) or (d.x>1330 and d.x<1710)), d_list))
-
         return d_list
 
-    def qy_choice(self,qy):
-        if qy == "A":
-            return 120,535,1330,1710
-        elif qy =="B":
-            return 536,815,1711,1960
-        elif qy=="C":
-            return 816,1085,1961,2215
+    def qy_choice(self,area):
+        if area == "A":
+            return self.area[0:4]
+        elif area =="B":
+            return self.area[4:8]
+        elif area=="C":
+            return self.area[8:]
 
 class QuickSearchSlot:
     def __init__(self):
