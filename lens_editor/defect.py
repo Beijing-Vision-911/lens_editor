@@ -4,15 +4,16 @@ from pathlib import Path
 import cv2
 import sys
 from PySide6 import QtCore, QtWidgets,QtGui
-from PySide6.QtCore import QPoint, Qt
+from PySide6.QtCore import QPoint, Qt,QTimer
 from PySide6.QtGui import QBrush, QColor, QCursor, QPixmap,QPen
 from PySide6.QtWidgets import (QGraphicsItem, QGraphicsItemGroup,
                                QGraphicsLayoutItem, QGraphicsPixmapItem,
                                QGraphicsScene, QGraphicsSimpleTextItem,
-                               QGraphicsView, QGridLayout, QLabel, QPushButton,
+                               QGraphicsView, QGridLayout, QLabel, QPushButton,QGraphicsTextItem,
                                QToolTip, QWidget)
 
 from .minimap import Minimap, numpy2pixmap
+from .message_tip import TipUi
 
 import logging
 
@@ -152,7 +153,7 @@ class DefectEdit(QWidget, Lens, Defect):
         self.Ss.show()
 
 
-class complex(QGraphicsView):
+class complex(QGraphicsView,DefectEdit):
     def __init__(self, defect, parent=None):
         super(complex, self).__init__(parent)
         self.scene1 = QGraphicsScene()
@@ -328,8 +329,6 @@ class complex(QGraphicsView):
                 self.defect.ymax - self.defect.ymin,
             )
             self.defect.xmax+=1
-            
-
 
     def keyPressEvent(self, QKeyEvent):
         if QKeyEvent.modifiers() == QtCore.Qt.ShiftModifier:
@@ -342,6 +341,9 @@ class complex(QGraphicsView):
             return self.keyPressEvent2(QKeyEvent)
         if QKeyEvent.key() == Qt.Key_B:
             return self.keyPressEvent3(QKeyEvent)
+        
+        if QKeyEvent.key() == Qt.Key_Escape:
+           self.close()
         
         if self.ll == True:
             if QKeyEvent.key() == Qt.Key_Up:
@@ -387,6 +389,8 @@ class complex(QGraphicsView):
 
         self.defect.lens.tree.write(str(self.defect.lens.xml_path))
         logger.info("Successful")
+        self.tip = TipUi()
+        self.tip.show()
 
     def keyPressEvent3(self, QKeyEvent):
         xml_file = f"{self.defect.lens.xml_path}"
@@ -543,6 +547,7 @@ w: {self.defect.width}"""
             DefectEdit(self.defect)
             self.defect_edit.show()
         if event.button() == Qt.RightButton:
+            self.label.setBrush(QBrush(QColor("red")))
             self.defect_edit = DefectEdit(self.defect)
             DefectEdit(self.defect)
             self.defect_edit.edit()

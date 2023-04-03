@@ -18,19 +18,24 @@ class FilterParser:
 
             
 
-        if filter_str == "A":
+        if filter_str == "A" or filter_str[2] == "A":
             for i in d_list:
                 if (i.x>self.area[0] and i.x<self.area[1]) or (i.x>self.area[2] and i.x<self.area[3]):
                     new_list.append(i)
             return new_list
-        elif filter_str == "B":
+        elif filter_str == "B" or filter_str[2] == "B":
             for i in d_list:
                 if (i.x>self.area[4] and i.x<self.area[5]) or (i.x>self.area[6] and i.x<self.area[7]):
                     new_list.append(i)
             return new_list
-        elif filter_str == "C":
+        elif filter_str == "C" or filter_str[2] == "C":
             for i in d_list:
                 if (i.x>self.area[8] and i.x<self.area[9]) or (i.x>self.area[10] and i.x<self.area[11]):
+                    new_list.append(i)
+            return new_list
+        elif filter_str == "D" or filter_str[2] == "D":
+            for i in d_list:
+                if (i.x>self.area[12] and i.x<self.area[13]) or (i.x>self.area[14] and i.x<self.area[15] or (i.x>self.area[16] and i.x<self.area[17])) :
                     new_list.append(i)
             return new_list
         for f in filter_str.split(" "):
@@ -39,11 +44,11 @@ class FilterParser:
 
     def some(self,mm):
         if mm =="70":
-            return [120,535,1330,1710,536,815,1711,1960,816,1060,1961,2185]
+            return [120,535,1330,1710,536,815,1711,1960,816,1060,1961,2185,0,119,1061,1329,2186,2400]
         elif mm == "72":
-            return [120,535,1330,1710,536,815,1711,1960,816,1085,1961,2215]
+            return [120,535,1330,1710,536,815,1711,1960,816,1085,1961,2215,0,119,1086,1329,2216,2400]
         elif mm == "75":
-            return [120,535,1330,1710,536,815,1711,1960,816,1135,1961,2240]
+            return [120,535,1330,1710,536,815,1711,1960,816,1135,1961,2240,0,119,1136,1329,2241,2400]
 
     def _parse_filter(self, filter_cmd: str, d_list: List[Defect]) -> List[Defect]:
         new_list = []
@@ -53,10 +58,16 @@ class FilterParser:
                 defect_name = defect.split("-")[0]
                 defect_area = defect.split("-")[1]
                 Subdivision_area = self.qy_choice(defect_area)
-                for i in d_list:
-                    if i.name == defect_name and ((i.x>Subdivision_area[0] and i.x<Subdivision_area[1]) or (i.x>Subdivision_area[2] and i.x<Subdivision_area[3])):
-                        new_list.append(i)
-                return new_list
+                if defect_area == "D":
+                    for i in d_list:
+                        if i.name == defect_name and ((i.x>Subdivision_area[0] and i.x<Subdivision_area[1]) or (i.x>Subdivision_area[2] and i.x<Subdivision_area[3]) or (i.x>Subdivision_area[4] and i.x<Subdivision_area[5]) ):
+                            new_list.append(i)
+                    return new_list
+                else:
+                    for i in d_list:
+                        if i.name == defect_name and ((i.x>Subdivision_area[0] and i.x<Subdivision_area[1]) or (i.x>Subdivision_area[2] and i.x<Subdivision_area[3])):
+                            new_list.append(i)
+                    return new_list
 
             else:
                 defect_name = defect
@@ -90,7 +101,9 @@ class FilterParser:
         elif area =="B":
             return self.area[4:8]
         elif area=="C":
-            return self.area[8:]
+            return self.area[8:12]
+        elif area == "D":
+            return self.area[12:]
 
 class QuickSearchSlot:
     def __init__(self):
