@@ -4,8 +4,8 @@ from itertools import chain
 from pathlib import Path
 
 from openpyxl import Workbook
-from PySide6.QtCore import QMutex, QThreadPool
-from PySide6.QtGui import QKeySequence, QPixmapCache, QShortcut
+from PySide6.QtCore import QMutex, QThreadPool,Qt
+from PySide6.QtGui import QKeySequence, QPixmapCache, QShortcut,QBrush, QColor
 from PySide6.QtWidgets import (QApplication, QCompleter, QFileDialog,
                                QGraphicsGridLayout, QGraphicsScene,
                                QGraphicsWidget, QHBoxLayout,
@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (QApplication, QCompleter, QFileDialog,
                                QVBoxLayout, QWidget)
 
 from .config import root_config
-from .defect import DefectItem, Lens
+from .defect import DefectItem, Lens,DefectEdit
 from .rule import linemapping, xymapping
 from .rule_edit import RuleEditWindow
 from .search import FilterParser, QuickSearchSlot
@@ -36,7 +36,7 @@ class MainWindow(QMainWindow):
         self.scene = QGraphicsScene()
         self.main_view = View(self.scene)
         QPixmapCache.setCacheLimit(1024 * 1024 * 10)
-
+        self.num = 0
         self.scene.setItemIndexMethod(QGraphicsScene.NoIndex)
         main_layout.addWidget(self.main_view)
 
@@ -252,6 +252,44 @@ class MainWindow(QMainWindow):
         g_widget.setLayout(g_layout)
         self.scene.addItem(g_widget)
         self.main_view.centerOn(self.scene.itemsBoundingRect().center())
+
+
+    def keyPressEvent(self, event):
+        self.num+=1
+        if event.key() == Qt.Key_Space:
+            if not hasattr(self, "scene"):
+                return
+            items = self.scene.selectedItems()
+            if len(items) == 0:
+                QMessageBox.information(self,"丢失","目标丢失,尝试按“Ctrl+z”以重新定位缺陷")
+                self.status_bar.showMessage("No item selected")
+                return
+            elif len(items) == 1:
+                if self.num == 1:
+                    QMessageBox.information(self,"连续模式","已经进入连续模式,按下”space“以切换下一张缺陷")
+                # QMessageBox.about(self,)
+
+                index = self.defects.index(items[0].defect)    #defect 的索引  0......+1
+                self.index1 = self.scene.items().index(items[0])    # items的索引   1.....+3
+                self.scene.clearSelection()
+                item = self.scene.items()[self.index1+3]      #选中下一个item
+                item.setSelected(True)
+                item.change_color()
+                
+                try:
+                    defect_edit = DefectEdit(self.defects[index+1])
+                    defect_edit.edit()
+                except IndexError:
+                    self.status_bar.showMessage("当前是最后一张")
+            else:
+                self.status_bar.showMessage("Too Many Items")
+                return
+        elif event.key() == Qt.Key_Z and event.modifiers() == Qt.ControlModifier:
+            item = self.scene.items()[self.index1]
+            item.setSelected(True)
+            item.change_color()
+            self.status_bar.showMessage("已选上一个缺陷，按下”space“以打开缺陷")
+
 
     def count_btn_clicked(self):
         text = self.count_bar.text()
