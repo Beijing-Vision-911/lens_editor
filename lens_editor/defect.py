@@ -4,7 +4,7 @@ from pathlib import Path
 import cv2
 import sys
 from PySide6 import QtCore, QtWidgets,QtGui
-from PySide6.QtCore import QPoint, Qt,QTimer
+from PySide6.QtCore import QPoint, Qt,QTimer,QSize
 from PySide6.QtGui import QBrush, QColor, QCursor, QPixmap,QPen
 from PySide6.QtWidgets import (QGraphicsItem, QGraphicsItemGroup,
                                QGraphicsLayoutItem, QGraphicsPixmapItem,
@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (QGraphicsItem, QGraphicsItemGroup,
 
 from .minimap import Minimap, numpy2pixmap
 from .message_tip import TipUi
+# from .app import MainWindow
 
 import logging
 
@@ -97,9 +98,21 @@ class Defect:
         "return current mark state"
         self.mark = not self.mark
         return self.mark
+    
+
+class Singleton(type(QGraphicsView)):
+    _instances = {}
+    def __call__(cls, *args, **kwargs):
+
+        cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+        return cls._instances[cls]
 
 
-class DefectEdit(QWidget, Lens, Defect):
+
+
+        
+
+class DefectEdit(QWidget,metaclass = Singleton):
     def __init__(self, defect, parent=None) -> None:
         super().__init__(parent)
         self.defect = defect
@@ -144,18 +157,20 @@ class DefectEdit(QWidget, Lens, Defect):
         layout.addWidget(self.label_map, 7, 0, 1, 2)
         
 
+
     def _minimap(self) -> QPixmap:
         minimap = Minimap(self.defect, self.defects, self.width())
         return minimap.draw(self.defect, self.defects)
 
     def edit(self):
-        self.Ss = complex(self.defect)
+        self.Ss = SingletonGraphicsView(self.defect)
         self.Ss.show()
 
 
-class complex(QGraphicsView,DefectEdit):
+
+class SingletonGraphicsView(QGraphicsView, metaclass=Singleton):
     def __init__(self, defect, parent=None):
-        super(complex, self).__init__(parent)
+        super().__init__(parent)
         self.scene1 = QGraphicsScene()
         self.item = QGraphicsPixmapItem()
         self.defect = defect
@@ -166,7 +181,7 @@ class complex(QGraphicsView,DefectEdit):
         self.y_ymin = 0
         self.resize(1300, 1400)
         self.singleOffset = QPoint(0, 0)
-        self.isLeftPressed = bool(False)  # 图片被点住(鼠标左键)标志位
+        self.isLeftPressed = bool(False)
         self.isImgLabelArea = bool(True)
         self.edit1()
 
@@ -330,6 +345,7 @@ class complex(QGraphicsView,DefectEdit):
             )
             self.defect.xmax+=1
 
+
     def keyPressEvent(self, QKeyEvent):
         if QKeyEvent.modifiers() == QtCore.Qt.ShiftModifier:
             self.shmove(QKeyEvent)
@@ -342,7 +358,8 @@ class complex(QGraphicsView,DefectEdit):
         if QKeyEvent.key() == Qt.Key_B:
             return self.keyPressEvent3(QKeyEvent)
         
-        if QKeyEvent.key() == Qt.Key_Escape:
+        if QKeyEvent.key() == Qt.Key_Space:
+           self.keyPressEvent2(QKeyEvent)
            self.close()
         
         if self.ll == True:
@@ -489,7 +506,6 @@ class complex(QGraphicsView,DefectEdit):
         elif event.button() == Qt.RightButton:
             pass
 
-
 class DefectLayoutItem(QGraphicsLayoutItem):
     def __init__(self, group, parent=None) -> None:
         super().__init__(parent)
@@ -501,6 +517,9 @@ class DefectLayoutItem(QGraphicsLayoutItem):
 
     def setGeometry(self, rect):
         return self.group.setPos(rect.topLeft())
+
+    def zuobiao(self):
+        return self.group.defect
 
 
 class DefectItem(QGraphicsItemGroup):
@@ -514,6 +533,13 @@ class DefectItem(QGraphicsItemGroup):
         self.img.setPixmap(
             numpy2pixmap(defect.image).scaledToWidth(50, Qt.SmoothTransformation)
         )
+        pixmap = numpy2pixmap(defect.image)
+        width = pixmap.width()
+        height = pixmap.height()
+        new_height = int(height * 50 / width)  # 计算等比例缩放后的高度
+        self.img.setPixmap(
+            numpy2pixmap(defect.image).scaledToHeight(new_height, Qt.SmoothTransformation)
+        )
         self.addToGroup(self.label)
         self.label.setY(-13)
         self.label.setX(12)
@@ -521,6 +547,7 @@ class DefectItem(QGraphicsItemGroup):
         self._rect = self.childrenBoundingRect()
         self._label_color = QColor("black")
         self.msg = msg
+
 
     def paint(self, painter, option, widget=None):
         painter.drawRect(self._rect)
@@ -530,6 +557,9 @@ class DefectItem(QGraphicsItemGroup):
 
     def get_layout_item(self) -> DefectLayoutItem:
         return DefectLayoutItem(self)
+
+    def change_color(self):
+        self.label.setBrush(QBrush(QColor("red")))
 
     def mousePressEvent(self, event) -> None:
         tooltip = f"""{self.msg}
@@ -543,15 +573,14 @@ w: {self.defect.width}"""
 
     def mouseDoubleClickEvent(self, event) -> None:
         if event.button() == Qt.LeftButton:
-            self.defect_edit = DefectEdit(self.defect)
-            DefectEdit(self.defect)
-            self.defect_edit.show()
+            defect_edit = DefectEdit(self.defect)
+            defect_edit.show()
         if event.button() == Qt.RightButton:
             self.label.setBrush(QBrush(QColor("red")))
-            self.defect_edit = DefectEdit(self.defect)
-            DefectEdit(self.defect)
-            self.defect_edit.edit()
-
+            defect_edit = DefectEdit(self.defect)
+            print(defect_edit)
+            defect_edit.edit()
+            
 
     def mark_toggle(self) -> bool:
         if state := self.defect.mark_toggle():

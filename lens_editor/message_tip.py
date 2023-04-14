@@ -42,7 +42,7 @@ class TipUi(QDialog):
 
         self.windosAlpha = 0
         self.timer.timeout.connect(self.hide_windows)
-        self.timer.start(20)
+        self.timer.start(10)
 
     def hide_windows(self):
         self.windosAlpha += 1

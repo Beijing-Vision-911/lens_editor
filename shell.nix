@@ -1,7 +1,7 @@
 { stdenv
 , lib
 , mkShell
-, python310Packages
+, python311Packages
 , taglib
 , openssl
 , git
@@ -20,9 +20,17 @@
 , wayland
   # pyright
 , nodejs
+# x11 deps
+, xcb-util-cursor
+, xcbutilwm
+, xcbutilimage 
+, xcbutilkeysyms
+, xcbutilrenderutil
+, libXrender
+, libxcb
 }:
 let
-  pypkgs = python310Packages;
+  pypkgs = python311Packages;
 in
 mkShell rec {
   name = "pythonVenv";
@@ -59,6 +67,13 @@ mkShell rec {
         libxml2
         libxslt
         libzip
+	xcb-util-cursor
+	xcbutilwm
+	xcbutilimage 
+	xcbutilkeysyms
+	xcbutilrenderutil
+	libXrender
+	libxcb
       ];
     in
     ''
